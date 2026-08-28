@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raíz Capital | Propiedades en venta y renta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#inicio" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        Raíz <em>Capital</em>
+      </a>
+
+      <nav class="main-nav" id="mainNav">
+        <a href="#inicio">Inicio</a>
+        <a href="#venta">Venta</a>
+        <a href="#renta">Renta</a>
+        <a href="#nosotros">Nosotros</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+
+      <button class="nav-toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="inicio">
+    <div class="container hero-inner">
+      <p class="eyebrow">Plus Agencia · Zona norte y centro</p>
+      <h1>Encuentra un lugar<br> para echar <em>raíces</em>.</h1>
+      <p class="hero-sub">Casas, departamentos y terrenos en venta y renta, curados por un equipo que conoce cada zona a fondo.</p>
+
+      <svg class="root-line" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M300 0 C300 20, 260 20, 220 35 C180 50, 140 40, 100 55 M300 20 C300 35, 340 35, 380 45 C420 55, 460 45, 500 58 M300 10 C300 25, 300 35, 300 58" />
+      </svg>
+
+      <!-- Buscador / Filtros -->
+      <form class="search-card" id="searchForm">
+        <div class="field">
+          <label for="tipo">Tipo</label>
+          <select id="tipo" name="tipo">
+            <option value="">Todos</option>
+            <option value="casa">Casa</option>
+            <option value="departamento">Departamento</option>
+            <option value="terreno">Terreno</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="operacion">Operación</label>
+          <select id="operacion" name="operacion">
+            <option value="">Todas</option>
+            <option value="venta">Venta</option>
+            <option value="renta">Renta</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="zona">Zona</label>
+          <select id="zona" name="zona">
+            <option value="">Todas</option>
+            <option value="centro">Centro</option>
+            <option value="norte">Zona Norte</option>
+            <option value="playas">Playas</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="precio">Precio máx.</label>
+          <select id="precio" name="precio">
+            <option value="">Sin límite</option>
+            <option value="2000000">Hasta $2,000,000</option>
+            <option value="4000000">Hasta $4,000,000</option>
+            <option value="8000000">Hasta $8,000,000</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Buscar propiedades</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== PROPIEDADES DESTACADAS ===== -->
+  <section class="listings" id="venta">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Inventario actual</p>
+          <h2>Propiedades destacadas</h2>
+        </div>
+        <p class="results-count" id="resultsCount">Mostrando <strong>6</strong> propiedades</p>
+      </div>
+
+      <div class="grid-cards" id="propertyGrid">
+        <!-- Las tarjetas se insertan por JS desde data de ejemplo -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== NOSOTROS ===== -->
+  <section class="about" id="nosotros">
+    <div class="container about-inner">
+      <div class="about-text">
+        <p class="eyebrow">Quiénes somos</p>
+        <h2>Un equipo local, un inventario cuidado.</h2>
+        <p>Raíz Capital nació para poner orden en la búsqueda de propiedades: cada inmueble que ves aquí fue visitado y verificado por nuestro equipo antes de publicarse. Nada de listados fantasma ni información desactualizada.</p>
+        <ul class="about-list">
+          <li>Acompañamiento personalizado en cada visita</li>
+          <li>Información y precios siempre actualizados</li>
+          <li>Contacto directo con el agente responsable</li>
+        </ul>
+      </div>
+      <div class="about-figure" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- ===== CONTACTO ===== -->
+  <section class="contact" id="contacto">
+    <div class="container contact-inner">
+      <div>
+        <p class="eyebrow">¿Tienes una propiedad para vender o rentar?</p>
+        <h2>Hablemos por WhatsApp.</h2>
+        <p>Cuéntanos sobre tu propiedad o lo que estás buscando y un agente te responde directamente.</p>
+      </div>
+      <a class="btn-whatsapp" id="whatsappBtn" href="#" target="_blank" rel="noopener">
+        Escribir por WhatsApp
+      </a>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>© <span id="year"></span> Raíz Capital. Todos los derechos reservados.</span>
+      <div class="footer-links">
+        <a href="#inicio">Inicio</a>
+        <a href="#nosotros">Nosotros</a>
+        <a href="#contacto">Contacto</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
