@@ -27,7 +27,7 @@ mainNav.querySelectorAll('a').forEach(link => {
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // --- Número de WhatsApp de la agencia (formato internacional, sin +) ---
-const WHATSAPP_NUMBER = '5216641234567'; // TODO: reemplazar por el número real
+const WHATSAPP_NUMBER = '663 4820588'; 
 const whatsappBtn = document.getElementById('whatsappBtn');
 whatsappBtn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, vi su página web y me interesa una propiedad.')}`;
 
