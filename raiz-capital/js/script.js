@@ -36,7 +36,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Casa en privada Los Encinos',
     precio: 3450000,
-    zona: 'norte',
+    zona: 'Zone Este',
     tipo: 'casa',
     operacion: 'venta',
     recamaras: 3,
@@ -46,7 +46,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Departamento vista al mar',
     precio: 18500,
-    zona: 'playas',
+    zona: 'Playas de Tijuana',
     tipo: 'departamento',
     operacion: 'renta',
     recamaras: 2,
@@ -56,7 +56,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Casa remodelada Centro',
     precio: 2890000,
-    zona: 'centro',
+    zona: 'Zona rio / Centro',
     tipo: 'casa',
     operacion: 'venta',
     recamaras: 3,
@@ -66,7 +66,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Terreno esquina Zona Norte',
     precio: 1250000,
-    zona: 'norte',
+    zona: 'Zona Norte',
     tipo: 'terreno',
     operacion: 'venta',
     recamaras: 0,
@@ -122,7 +122,7 @@ function renderProperties(list) {
       <div class="property-body">
         <p class="property-price">${formatPrice(p.precio, p.operacion)}</p>
         <p class="property-title">${p.titulo}</p>
-        <p class="property-loc">Zona ${capitalize(p.zona)}</p>
+        <p class="property-loc"> ${capitalize(p.zona)}</p>
         <div class="property-meta">
           ${p.recamaras ? `<span>${p.recamaras} rec.</span>` : ''}
           ${p.banos ? `<span>${p.banos} baños</span>` : ''}
@@ -148,13 +148,13 @@ searchForm.addEventListener('submit', (e) => {
 
   const tipo = document.getElementById('tipo').value;
   const operacion = document.getElementById('operacion').value;
-  const zona = document.getElementById('zona').value;
+  const zona = document.getElementById('zona').value.trim();
   const precioMax = document.getElementById('precio').value;
 
   const filtered = SAMPLE_PROPERTIES.filter(p => {
     if (tipo && p.tipo !== tipo) return false;
     if (operacion && p.operacion !== operacion) return false;
-    if (zona && p.zona !== zona) return false;
+    if (zona && !p.zona.toLowerCase().includes(zona.toLowerCase())) return false;
     if (precioMax && p.precio > Number(precioMax)) return false;
     return true;
   });

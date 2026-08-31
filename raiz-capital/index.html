@@ -65,13 +65,28 @@
         </div>
         <div class="field">
           <label for="zona">Zona</label>
-          <select id="zona" name="zona">
-            <option value="">Todas</option>
-            <option value="centro">Centro</option>
-            <option value="norte">Zona Norte</option>
-            <option value="playas">Playas</option>
-          </select>
-        </div>
+           <input
+           type="text"
+           id="zona"
+           name="zona"
+           placeholder="Buscar zona..."
+           autocomplete="off"
+           >
+          <datalist id="zonas">
+            <option value="Zona Río / Centro">
+            <option value="Zona Este">
+            <option value="Otay">
+            <option value="La Mesa">
+            <option value="Agua Caliente">
+            <option value="Playas de Tijuana">
+            <option value="Santa Fe">
+            <option value="Zona Sur">
+            <option value="Zona Oeste">
+            <option value="Zona Norte">
+            <option value="Valle de las Palmas">
+            <option value="Rosarito">
+            </datalist>
+    </div> 
         <div class="field">
           <label for="precio">Precio máx.</label>
           <select id="precio" name="precio">
