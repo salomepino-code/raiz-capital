@@ -27,7 +27,7 @@ mainNav.querySelectorAll('a').forEach(link => {
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // --- Número de WhatsApp de la agencia (formato internacional, sin +) ---
-const WHATSAPP_NUMBER = '663 4820588'; 
+const WHATSAPP_NUMBER = '526634820588'; //
 const whatsappBtn = document.getElementById('whatsappBtn');
 whatsappBtn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, vi su página web y me interesa una propiedad.')}`;
 
@@ -36,7 +36,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Casa en privada Los Encinos',
     precio: 3450000,
-    zona: 'Zone Este',
+    zona: 'Zona Este',
     tipo: 'casa',
     operacion: 'venta',
     recamaras: 3,
@@ -56,7 +56,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Casa remodelada Centro',
     precio: 2890000,
-    zona: 'Zona rio / Centro',
+    zona: 'Zona Río / Centro',
     tipo: 'casa',
     operacion: 'venta',
     recamaras: 3,
@@ -76,7 +76,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Depto. amueblado Centro',
     precio: 12000,
-    zona: 'centro',
+    zona: 'Zona Río / Centro',
     tipo: 'departamento',
     operacion: 'renta',
     recamaras: 1,
@@ -86,7 +86,7 @@ const SAMPLE_PROPERTIES = [
   {
     titulo: 'Casa con alberca Playas',
     precio: 6200000,
-    zona: 'playas',
+    zona: 'Playas de Tijuana',
     tipo: 'casa',
     operacion: 'venta',
     recamaras: 4,
@@ -122,7 +122,7 @@ function renderProperties(list) {
       <div class="property-body">
         <p class="property-price">${formatPrice(p.precio, p.operacion)}</p>
         <p class="property-title">${p.titulo}</p>
-        <p class="property-loc"> ${capitalize(p.zona)}</p>
+        <p class="property-loc">${p.zona}</p>
         <div class="property-meta">
           ${p.recamaras ? `<span>${p.recamaras} rec.</span>` : ''}
           ${p.banos ? `<span>${p.banos} baños</span>` : ''}
@@ -136,9 +136,119 @@ function renderProperties(list) {
   resultsCount.innerHTML = `Mostrando <strong>${list.length}</strong> propiedades`;
 }
 
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+// --- Autocompletar de zona ---
+const ZONAS = [
+  'Zona Río / Centro', 'Zona Este', 'Otay', 'La Mesa', 'Agua Caliente',
+  'Playas de Tijuana', 'Santa Fe', 'Zona Sur', 'Zona Oeste',
+  'Zona Norte', 'Valle de las Palmas', 'Rosarito'
+];
+
+const zonaInput = document.getElementById('zona');
+const zonaList = document.getElementById('zonaSuggestions');
+let activeIndex = -1;
+
+function highlightMatch(text, query) {
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return `${text.slice(0, idx)}<mark>${text.slice(idx, idx + query.length)}</mark>${text.slice(idx + query.length)}`;
 }
+
+function showSuggestions(query) {
+  const matches = ZONAS.filter(z => z.toLowerCase().includes(query.toLowerCase()));
+  activeIndex = -1;
+
+  if (!query || matches.length === 0) {
+    zonaList.classList.remove('open');
+    zonaList.innerHTML = '';
+    return;
+  }
+
+  zonaList.innerHTML = matches
+    .map(z => `<li>${highlightMatch(z, query)}</li>`)
+    .join('');
+  zonaList.classList.add('open');
+}
+
+zonaInput.addEventListener('input', () => showSuggestions(zonaInput.value.trim()));
+
+zonaInput.addEventListener('focus', () => {
+  if (zonaInput.value.trim()) showSuggestions(zonaInput.value.trim());
+});
+
+zonaList.addEventListener('click', (e) => {
+  const li = e.target.closest('li');
+  if (!li) return;
+  zonaInput.value = li.textContent;
+  zonaList.classList.remove('open');
+});
+
+// Navegación con teclado (flechas + Enter)
+zonaInput.addEventListener('keydown', (e) => {
+  const items = [...zonaList.querySelectorAll('li')];
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    activeIndex = (activeIndex + 1) % items.length;
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    activeIndex = (activeIndex - 1 + items.length) % items.length;
+  } else if (e.key === 'Enter' && activeIndex >= 0) {
+    e.preventDefault();
+    zonaInput.value = items[activeIndex].textContent;
+    zonaList.classList.remove('open');
+    return;
+  } else {
+    return;
+  }
+
+  items.forEach(li => li.classList.remove('active'));
+  items[activeIndex].classList.add('active');
+});
+
+// Cerrar dropdown al hacer click afuera
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.field-autocomplete')) {
+    zonaList.classList.remove('open');
+  }
+});
+
+// --- Rangos de precio según operación ---
+
+const RANGOS_PRECIO = {
+  venta: [
+    { value: '2000000', label: 'Hasta $2,000,000' },
+    { value: '4000000', label: 'Hasta $4,000,000' },
+    { value: '6000000', label: 'Hasta $6,000,000' },
+    { value: '8000000', label: 'Hasta $8,000,000' },
+    { value: '10000000', label: 'Hasta $10,000,000' },
+    { value: '15000000', label: 'Hasta $15,000,000' },
+  ],
+  renta: [
+    { value: '10000', label: 'Hasta $10,000' },
+    { value: '15000', label: 'Hasta $15,000' },
+    { value: '20000', label: 'Hasta $20,000' },
+    { value: '25000', label: 'Hasta $25,000' },
+    { value: '30000', label: 'Hasta $30,000' },
+    { value: '40000', label: 'Hasta $40,000' },
+    { value: '50000', label: 'Hasta $50,000' },
+  ]
+};
+
+const operacionSelect = document.getElementById('operacion');
+const precioSelect = document.getElementById('precio');
+
+function actualizarRangosPrecio() {
+  const operacion = operacionSelect.value;
+  const rangos = RANGOS_PRECIO[operacion] || [];
+
+  precioSelect.innerHTML =
+    '<option value="">Sin límite</option>' +
+    rangos.map(r => `<option value="${r.value}">${r.label}</option>`).join('');
+}
+
+operacionSelect.addEventListener('change', actualizarRangosPrecio);
+actualizarRangosPrecio(); // estado inicial al cargar la página
 
 // --- Filtros ---
 const searchForm = document.getElementById('searchForm');

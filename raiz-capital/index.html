@@ -15,7 +15,7 @@
   <header class="site-header">
     <div class="container header-inner">
       <a href="#inicio" class="logo">
-       <img src="assets/logoSinFondo.JPG" alt = "Raiz Capital" style = "height:85px; width:auto;"> 
+        <img src="assets/logoSinFondo.JPG" alt="Raíz Capital" style="height:56px; width:auto;">
       </a>
 
       <nav class="main-nav" id="mainNav">
@@ -37,11 +37,7 @@
     <div class="container hero-inner">
       <p class="eyebrow">Bienvenido a Raíz Capital</p>
       <h1>Encuentra un lugar<br> para echar <em>raíces</em>.</h1>
-      <p class="hero-sub">Casas, departamentos, locales y terrenos en venta y renta..</p>
-
-      <svg class="root-line" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden="true">
-        
-      </svg>
+      <p class="hero-sub">Casas, departamentos, locales y terrenos en venta y renta.</p>
 
       <!-- Buscador / Filtros -->
       <form class="search-card" id="searchForm">
@@ -55,6 +51,7 @@
             <option value="local">Local</option>
           </select>
         </div>
+
         <div class="field">
           <label for="operacion">Operación</label>
           <select id="operacion" name="operacion">
@@ -63,39 +60,26 @@
             <option value="renta">Renta</option>
           </select>
         </div>
-        <div class="field">
+
+        <div class="field field-autocomplete">
           <label for="zona">Zona</label>
-           <input
-           type="text"
-           id="zona"
-           name="zona"
-           placeholder="Buscar zona..."
-           autocomplete="off"
-           >
-          <datalist id="zonas">
-            <option value="Zona Río / Centro">
-            <option value="Zona Este">
-            <option value="Otay">
-            <option value="La Mesa">
-            <option value="Agua Caliente">
-            <option value="Playas de Tijuana">
-            <option value="Santa Fe">
-            <option value="Zona Sur">
-            <option value="Zona Oeste">
-            <option value="Zona Norte">
-            <option value="Valle de las Palmas">
-            <option value="Rosarito">
-            </datalist>
-    </div> 
+          <input
+            type="text"
+            id="zona"
+            name="zona"
+            placeholder="Buscar zona..."
+            autocomplete="off"
+          >
+          <ul class="autocomplete-list" id="zonaSuggestions"></ul>
+        </div>
+
         <div class="field">
           <label for="precio">Precio máx.</label>
           <select id="precio" name="precio">
             <option value="">Sin límite</option>
-            <option value="2000000">Hasta $2,000,000</option>
-            <option value="4000000">Hasta $4,000,000</option>
-            <option value="8000000">Hasta $8,000,000</option>
           </select>
         </div>
+
         <button type="submit" class="btn-primary">Buscar propiedades</button>
       </form>
     </div>
@@ -131,9 +115,9 @@
           <li>Contacto directo con el agente responsable</li>
         </ul>
       </div>
-    </div>
       <div class="about-figure">
         <img src="assets/equipo.jpg" alt="Equipo de Raíz Capital" width="600" height="400">
+      </div>
     </div>
   </section>
 
@@ -165,4 +149,4 @@
 
   <script src="js/script.js"></script>
 </body>
-</html>
+</html> 
