@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import 'app_theme.dart';
 
 /// Pantalla de inicio de sesión (RF02 del documento de requerimientos).
 ///
