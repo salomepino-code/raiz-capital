@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Paleta de marca de Raíz Capital.
 ///
-/// NOTA: estos valores son una aproximación al navy/vino/dorado usado
+/// NOTA: estos valores son una aproximación al navy/vino/dor ado usado
 /// en la web (css/style.css). Si tienes los hex exactos de las
 /// variables :root de esa hoja de estilos, reemplázalos aquí para
 /// que mobile y web luzcan idénticos.

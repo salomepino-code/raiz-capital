@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'catalog_screen.dart';
 import 'app_theme.dart';
 
 void main() {
@@ -15,7 +15,10 @@ class RaizCapitalApp extends StatelessWidget {
       title: 'Raíz Capital',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: const LoginScreen(),
+      // El catálogo es la puerta de entrada: cualquier visitante puede
+      // ver propiedades sin cuenta. El login se alcanza desde ahí
+      // (ícono de perfil), no es la pantalla inicial.
+      home: const CatalogScreen(),
     );
   }
 }

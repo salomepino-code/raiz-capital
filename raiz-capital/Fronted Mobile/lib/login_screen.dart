@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
 /// Pantalla de inicio de sesión (RF02 del documento de requerimientos).
-///
-/// Corresponde al caso de uso "Registrar acceso": el usuario ingresa
-/// correo y contraseña, el sistema valida el formato localmente y
 /// luego debe validar las credenciales contra el backend.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,20 +57,12 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     // aqui va la conexion con el backend Java
-    // Endpoint esperado, consistente con el patrón usado en la web:
-    // POST /api/auth/login  { "correo": ..., "contrasena": ... }
-    // -> devuelve token/sesión y redirige al catálogo si es exitoso.
-    //
     // Simulación temporal mientras no existe el backend:
     await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // TODO: reemplazar por la navegación real al catálogo tras login exitoso
-    // y por el manejo real de error (credenciales incorrectas, cuenta
-    // bloqueada tras 3 intentos fallidos, etc. según RN02/RN03 del
-    // caso de uso "Registrar acceso").
   }
 
   @override
