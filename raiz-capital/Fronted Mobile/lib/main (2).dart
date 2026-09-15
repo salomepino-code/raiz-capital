@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
-import 'catalog_screen.dart';
-import 'app_theme.dart';
+import 'pantalla_catalogo.dart';
+import 'tema_app.dart';
 
 void main() {
-  runApp(const RaizCapitalApp());
+  runApp(const AplicacionRaizCapital());
 }
 
-class RaizCapitalApp extends StatelessWidget {
-  const RaizCapitalApp({super.key});
+class AplicacionRaizCapital extends StatelessWidget {
+  const AplicacionRaizCapital({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Raíz Capital',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
+      theme: TemaApp.tema,
       // El catálogo es la puerta de entrada: cualquier visitante puede
       // ver propiedades sin cuenta. El login se alcanza desde ahí
       // (ícono de perfil), no es la pantalla inicial.
-      home: const CatalogScreen(),
+      home: const PantallaCatalogo(),
     );
   }
 }

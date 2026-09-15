@@ -1,116 +1,134 @@
 import 'package:flutter/material.dart';
-import 'app_theme.dart';
+import 'tema_app.dart';
 
 /// Pantalla de inicio de sesión (RF02 del documento de requerimientos).
+///
+/// Corresponde al caso de uso "Registrar acceso": el usuario ingresa
+/// correo y contraseña, el sistema valida el formato localmente y
 /// luego debe validar las credenciales contra el backend.
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+///
+/// NOTA sobre registro: la cuenta de ADMINISTRADOR no se crea desde
+/// aquí (se crea manualmente, fuera del autoregistro). El botón
+/// "Regístrate" de abajo es para el COMPRADOR, que puede crear una
+/// cuenta opcional si quiere guardar reseñas o favoritos — no es
+/// obligatorio para navegar el catálogo.
+class PantallaInicioSesion extends StatefulWidget {
+  const PantallaInicioSesion({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<PantallaInicioSesion> createState() => _EstadoPantallaInicioSesion();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
+  final _llaveFormulario = GlobalKey<FormState>();
+  final _controladorCorreo = TextEditingController();
+  final _controladorContrasena = TextEditingController();
 
-  bool _obscurePassword = true;
-  bool _isLoading = false;
-  String? _loginError;
+  bool _ocultarContrasena = true;
+  bool _cargando = false;
+  String? _errorInicioSesion;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _controladorCorreo.dispose();
+    _controladorContrasena.dispose();
     super.dispose();
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
+  String? _validarCorreo(String? valor) {
+    if (valor == null || valor.trim().isEmpty) {
       return 'Ingresa tu correo electrónico';
     }
-    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailPattern.hasMatch(value.trim())) {
+    final patronCorreo = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!patronCorreo.hasMatch(valor.trim())) {
       return 'Ingresa un correo válido';
     }
     return null;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
+  String? _validarContrasena(String? valor) {
+    if (valor == null || valor.isEmpty) {
       return 'Ingresa tu contraseña';
     }
-    if (value.length < 8) {
+    if (valor.length < 8) {
       return 'Debe tener al menos 8 caracteres';
     }
     return null;
   }
 
-  Future<void> _handleLogin() async {
-    setState(() => _loginError = null);
+  Future<void> _manejarInicioSesion() async {
+    setState(() => _errorInicioSesion = null);
 
-    if (!_formKey.currentState!.validate()) {
+    if (!_llaveFormulario.currentState!.validate()) {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _cargando = true);
 
     // aqui va la conexion con el backend Java
+    // Endpoint esperado, consistente con el patrón usado en la web:
+    // POST /api/auth/login  { "correo": ..., "contrasena": ... }
+    // -> devuelve token/sesión y el rol del usuario (comprador/administrador),
+    // y redirige al catálogo si es exitoso.
+    //
     // Simulación temporal mientras no existe el backend:
     await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    setState(() => _cargando = false);
 
+    // TODO: reemplazar por la navegación real al catálogo tras login exitoso
+    // y por el manejo real de error (credenciales incorrectas, cuenta
+    // bloqueada tras 3 intentos fallidos, etc. según RN02/RN03 del
+    // caso de uso "Registrar acceso").
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final temaDeTexto = Theme.of(context).textTheme;
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           child: Form(
-            key: _formKey,
+            key: _llaveFormulario,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 32),
-                _Brand(textTheme: textTheme),
+                _Marca(temaDeTexto: temaDeTexto),
                 const SizedBox(height: 40),
-                Text('Correo electrónico', style: textTheme.bodyMedium),
+                Text('Correo electrónico', style: temaDeTexto.bodyMedium),
                 const SizedBox(height: 6),
                 TextFormField(
-                  controller: _emailController,
+                  controller: _controladorCorreo,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
                   decoration: const InputDecoration(hintText: 'tucorreo@ejemplo.com'),
-                  validator: _validateEmail,
+                  validator: _validarCorreo,
                 ),
                 const SizedBox(height: 20),
-                Text('Contraseña', style: textTheme.bodyMedium),
+                Text('Contraseña', style: temaDeTexto.bodyMedium),
                 const SizedBox(height: 6),
                 TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
+                  controller: _controladorContrasena,
+                  obscureText: _ocultarContrasena,
                   textInputAction: TextInputAction.done,
                   autofillHints: const [AutofillHints.password],
-                  onFieldSubmitted: (_) => _handleLogin(),
+                  onFieldSubmitted: (_) => _manejarInicioSesion(),
                   decoration: InputDecoration(
                     hintText: 'Mínimo 8 caracteres',
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.textMuted,
+                        _ocultarContrasena ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: ColoresApp.textoApagado,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () => setState(() => _ocultarContrasena = !_ocultarContrasena),
                     ),
                   ),
-                  validator: _validatePassword,
+                  validator: _validarContrasena,
                 ),
                 Align(
                   alignment: Alignment.centerRight,
@@ -121,17 +139,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('¿Olvidaste tu contraseña?'),
                   ),
                 ),
-                if (_loginError != null) ...[
+                if (_errorInicioSesion != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    _loginError!,
-                    style: textTheme.bodyMedium?.copyWith(color: AppColors.error),
+                    _errorInicioSesion!,
+                    style: temaDeTexto.bodyMedium?.copyWith(color: ColoresApp.error),
                   ),
                 ],
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading
+                  onPressed: _cargando ? null : _manejarInicioSesion,
+                  child: _cargando
                       ? const SizedBox(
                           height: 22,
                           width: 22,
@@ -140,13 +158,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Iniciar sesión'),
                 ),
                 const SizedBox(height: 28),
+                // Registro opcional PARA EL COMPRADOR (no para administrador).
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('¿No tienes cuenta?', style: textTheme.bodyMedium),
+                    Text('¿No tienes cuenta?', style: temaDeTexto.bodyMedium),
                     TextButton(
                       onPressed: () {
-                        // aqui va la navegacion a la pantalla de registro (RF01)
+                        // aqui va la navegacion a la pantalla de registro de COMPRADOR (RF01)
+                        // (opcional: guardar reseñas o favoritos). El administrador
+                        // no se registra aquí, su cuenta se crea manualmente.
                       },
                       child: const Text('Regístrate'),
                     ),
@@ -162,10 +183,10 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 /// Encabezado de marca: logo/wordmark en Fraunces + tagline en Inter.
-class _Brand extends StatelessWidget {
-  const _Brand({required this.textTheme});
+class _Marca extends StatelessWidget {
+  const _Marca({required this.temaDeTexto});
 
-  final TextTheme textTheme;
+  final TextTheme temaDeTexto;
 
   @override
   Widget build(BuildContext context) {
@@ -175,14 +196,14 @@ class _Brand extends StatelessWidget {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            color: AppColors.navy,
+            color: ColoresApp.azulNoche,
             borderRadius: BorderRadius.circular(16),
           ),
           alignment: Alignment.center,
           child: const Text(
             'RC',
             style: TextStyle(
-              color: AppColors.gold,
+              color: ColoresApp.dorado,
               fontWeight: FontWeight.w700,
               fontSize: 22,
               letterSpacing: 1,
@@ -190,11 +211,11 @@ class _Brand extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Raíz Capital', style: textTheme.displayLarge, textAlign: TextAlign.center),
+        Text('Raíz Capital', style: temaDeTexto.displayLarge, textAlign: TextAlign.center),
         const SizedBox(height: 6),
         Text(
           'Encuentra tu próxima propiedad',
-          style: textTheme.bodyMedium,
+          style: temaDeTexto.bodyMedium,
           textAlign: TextAlign.center,
         ),
       ],
