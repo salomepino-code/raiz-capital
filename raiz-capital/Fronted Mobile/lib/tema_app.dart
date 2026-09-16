@@ -20,15 +20,13 @@ class ColoresApp {
 }
 
 /// Tema global de la app. Se aplica una sola vez en main.dart.
-///
-/// Radio de bordes de 4px en todo (botones, inputs, tarjetas), igual
-/// que --radius: 4px en la web — nada de esquinas muy redondeadas.
+ 
 class TemaApp {
   static const double radio = 4.0;
 
   static ThemeData get tema {
     final temaDeTexto = TextTheme(
-      // Fraunces: para títulos (h1, h2, h3 en la web usan --navy)
+      // Fraunces: para títulos (h1, h2, h3)
       displayLarge: GoogleFonts.fraunces(
         fontSize: 34,
         fontWeight: FontWeight.w600,
@@ -41,8 +39,9 @@ class TemaApp {
         color: ColoresApp.azulNoche,
         height: 1.1,
       ),
-      // Inter: cuerpo de texto (la web usa --ink para texto normal,
-      // --muted para texto secundario como precios de zona, ubicaciones, etc.)
+
+      // cuerpo de texto 
+
       bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         color: ColoresApp.tinta,
@@ -70,8 +69,8 @@ class TemaApp {
       scaffoldBackgroundColor: ColoresApp.crema,
       colorScheme: ColorScheme.fromSeed(
         seedColor: ColoresApp.azulNoche,
-        primary: ColoresApp.azulNoche, // .btn-primary es navy, no vino
-        secondary: ColoresApp.vino, // acento: focus, hover, whatsapp
+        primary: ColoresApp.azulNoche, 
+        secondary: ColoresApp.vino, 
         tertiary: ColoresApp.dorado,
         surface: ColoresApp.crema,
         error: ColoresApp.error,
@@ -89,7 +88,6 @@ class TemaApp {
           borderRadius: BorderRadius.circular(radio),
           borderSide: const BorderSide(color: ColoresApp.borde),
         ),
-        // La web resalta el foco del input con --wine, no con --navy.
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radio),
           borderSide: const BorderSide(color: ColoresApp.vino, width: 1.5),

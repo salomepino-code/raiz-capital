@@ -3,12 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'pantalla_inicio_sesion.dart';
 import 'tema_app.dart';
 
-/// Pantalla de catálogo — puerta de entrada de la app (RF04, caso de uso
-/// "Buscar propiedad"). Cualquier visitante puede ver esto sin cuenta.
+/// Pantalla de catálogo — puerta de entrada de la app 
+/// Cualquier visitante puede ver esto sin cuenta.
 /// El ícono de perfil lleva al login, que es secundario y opcional.
 ///
-/// Estructura calcada del index.html de la web: hero con buscador de
-/// filtros, seguido de la cuadrícula de propiedades destacadas.
+/// Estructura calcada del index.html de la web
+
 class PantallaCatalogo extends StatelessWidget {
   const PantallaCatalogo({super.key});
 

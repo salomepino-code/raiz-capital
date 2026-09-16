@@ -15,9 +15,6 @@ class AplicacionRaizCapital extends StatelessWidget {
       title: 'Raíz Capital',
       debugShowCheckedModeBanner: false,
       theme: TemaApp.tema,
-      // El catálogo es la puerta de entrada: cualquier visitante puede
-      // ver propiedades sin cuenta. El login se alcanza desde ahí
-      // (ícono de perfil), no es la pantalla inicial.
       home: const PantallaCatalogo(),
     );
   }
