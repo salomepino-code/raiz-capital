@@ -38,7 +38,7 @@ class PantallaCatalogo extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         children: [
-          // ===== HERO (equivalente a .hero de la web) =====
+          // ===== HERO =====
           Text('BIENVENIDO A RAÍZ CAPITAL', style: temaDeTexto.labelSmall),
           const SizedBox(height: 10),
           RichText(
@@ -64,12 +64,12 @@ class PantallaCatalogo extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // ===== BUSCADOR / FILTROS (equivalente a .search-card) =====
+          // ===== BUSCADOR / FILTROS =====
           const _TarjetaBusqueda(),
 
           const SizedBox(height: 36),
 
-          // ===== LISTADO (equivalente a .listings) =====
+          // ===== LISTADO =====
           Text('INVENTARIO ACTUAL', style: temaDeTexto.labelSmall),
           const SizedBox(height: 4),
           Text('Propiedades destacadas', style: temaDeTexto.headlineSmall),
@@ -116,8 +116,7 @@ class PantallaCatalogo extends StatelessWidget {
   }
 }
 
-/// Wordmark "Raíz Capital", igual que .logo de la web (navy + "Capital" en
-/// vino/itálica).
+/// Logo empresa
 class _Logo extends StatelessWidget {
   const _Logo({required this.temaDeTexto});
 
@@ -125,28 +124,10 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estiloBase = temaDeTexto.headlineSmall?.copyWith(fontSize: 19);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              center: Alignment(-0.3, -0.4),
-              colors: [ColoresApp.dorado, ColoresApp.vino],
-            ),
-          ),
-        ),
-        Text('Raíz ', style: estiloBase),
-        Text(
-          'Capital',
-          style: estiloBase?.copyWith(color: ColoresApp.vino, fontStyle: FontStyle.italic),
-        ),
-      ],
+    return Image.asset(
+      'assets/logoSinFondo.JPG',
+      height: 40,
+      fit: BoxFit.contain,
     );
   }
 }
