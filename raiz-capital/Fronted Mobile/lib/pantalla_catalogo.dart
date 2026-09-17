@@ -126,7 +126,7 @@ class _Logo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       'assets/logoSinFondo.JPG',
-      height: 40,
+      height: 60,
       fit: BoxFit.contain,
     );
   }

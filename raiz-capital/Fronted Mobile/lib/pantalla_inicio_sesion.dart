@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'tema_app.dart';
 
-/// Pantalla de inicio de sesión (RF02 del documento de requerimientos).
+/// Pantalla de inicio de sesión.
 ///
-/// Corresponde al caso de uso "Registrar acceso": el usuario ingresa
-/// correo y contraseña, el sistema valida el formato localmente y
-/// luego debe validar las credenciales contra el backend.
-///
-/// NOTA sobre registro: la cuenta de ADMINISTRADOR no se crea desde
-/// aquí (se crea manualmente, fuera del autoregistro). El botón
-/// "Regístrate" de abajo es para el COMPRADOR, que puede crear una
+/// NOTA: la cuenta de ADMINISTRADOR se crea manualmente, fuera del autoregistro
+/// El botón "Regístrate" de abajo es para el COMPRADOR, que puede crear una
 /// cuenta opcional si quiere guardar reseñas o favoritos — no es
 /// obligatorio para navegar el catálogo.
+
 class PantallaInicioSesion extends StatefulWidget {
   const PantallaInicioSesion({super.key});
 
@@ -79,8 +75,7 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
 
     // TODO: reemplazar por la navegación real al catálogo tras login exitoso
     // y por el manejo real de error (credenciales incorrectas, cuenta
-    // bloqueada tras 3 intentos fallidos, etc. según RN02/RN03 del
-    // caso de uso "Registrar acceso").
+    // bloqueada tras 3 intentos fallidos, etc. 
   }
 
   @override
@@ -185,31 +180,14 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
 /// Encabezado de marca: logo/wordmark en Fraunces + tagline en Inter.
 class _Marca extends StatelessWidget {
   const _Marca({required this.temaDeTexto});
-
+ 
   final TextTheme temaDeTexto;
-
+ 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: ColoresApp.azulNoche,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.center,
-          child: const Text(
-            'RC',
-            style: TextStyle(
-              color: ColoresApp.dorado,
-              fontWeight: FontWeight.w700,
-              fontSize: 22,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
+        const LogoRaizCapital(altura: 64),
         const SizedBox(height: 20),
         Text('Raíz Capital', style: temaDeTexto.displayLarge, textAlign: TextAlign.center),
         const SizedBox(height: 6),
