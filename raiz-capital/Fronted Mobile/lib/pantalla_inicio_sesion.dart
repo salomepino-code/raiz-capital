@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'logo_raiz_capital.dart';
 import 'tema_app.dart';
 
 /// Pantalla de inicio de sesión.
@@ -62,8 +63,6 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
     setState(() => _cargando = true);
 
     // aqui va la conexion con el backend Java
-    // Endpoint esperado, consistente con el patrón usado en la web:
-    // POST /api/auth/login  { "correo": ..., "contrasena": ... }
     // -> devuelve token/sesión y el rol del usuario (comprador/administrador),
     // y redirige al catálogo si es exitoso.
     //
@@ -75,7 +74,6 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
 
     // TODO: reemplazar por la navegación real al catálogo tras login exitoso
     // y por el manejo real de error (credenciales incorrectas, cuenta
-    // bloqueada tras 3 intentos fallidos, etc. 
   }
 
   @override
