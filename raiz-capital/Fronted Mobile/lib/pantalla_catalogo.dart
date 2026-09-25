@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'logo_raiz_capital.dart';
 import 'pantalla_inicio_sesion.dart';
 import 'tema_app.dart';
 
 /// Pantalla de catálogo — puerta de entrada de la app 
 /// Cualquier visitante puede ver esto sin cuenta.
 /// El ícono de perfil lleva al login, que es secundario y opcional.
-///
 /// Estructura calcada del index.html de la web
 
 class PantallaCatalogo extends StatelessWidget {
@@ -21,7 +21,7 @@ class PantallaCatalogo extends StatelessWidget {
         backgroundColor: ColoresApp.crema,
         elevation: 0,
         titleSpacing: 20,
-        title: _Logo(temaDeTexto: temaDeTexto),
+        title: const LogoRaizCapital(altura: 60),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline, color: ColoresApp.azulNoche),
@@ -45,14 +45,7 @@ class PantallaCatalogo extends StatelessWidget {
             text: TextSpan(
               style: temaDeTexto.displayLarge,
               children: [
-                const TextSpan(text: 'Encuentra un lugar\npara echar '),
-                TextSpan(
-                  text: 'raíces',
-                  style: temaDeTexto.displayLarge?.copyWith(
-                    color: ColoresApp.vino,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
+                const TextSpan(text: 'Donde tu patrimonio crece seguro'),
                 const TextSpan(text: '.'),
               ],
             ),
@@ -75,9 +68,7 @@ class PantallaCatalogo extends StatelessWidget {
           Text('Propiedades destacadas', style: temaDeTexto.headlineSmall),
           const SizedBox(height: 4),
           // aqui va la conexion con el backend Java
-          // Endpoint esperado: GET /api/propiedades (con filtros como query params)
-          Text('Mostrando 3 propiedades', style: temaDeTexto.bodyMedium),
-          const SizedBox(height: 16),
+          
 
           // TODO: reemplazar esta lista de ejemplo por las propiedades
           // reales que devuelva la API.
@@ -116,25 +107,9 @@ class PantallaCatalogo extends StatelessWidget {
   }
 }
 
-/// Logo empresa
-class _Logo extends StatelessWidget {
-  const _Logo({required this.temaDeTexto});
-
-  final TextTheme temaDeTexto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/logoSinFondo.JPG',
-      height: 60,
-      fit: BoxFit.contain,
-    );
-  }
-}
-
-/// Tarjeta de búsqueda con filtros (equivalente a .search-card).
-/// Por ahora son placeholders visuales; la lógica de filtrado real se
-/// conecta después al mismo endpoint que usa la web.
+/// Tarjeta de búsqueda con filtros 
+/// Por ahora son placeholders visuales; 
+/// la lógica de filtrado real se conecta después 
 class _TarjetaBusqueda extends StatelessWidget {
   const _TarjetaBusqueda();
 
@@ -229,9 +204,7 @@ class _CampoFiltro extends StatelessWidget {
   }
 }
 
-/// Tarjeta de propiedad (equivalente a .property-card): imagen con
-/// degradado navy→wine, insignia de operación, precio en Fraunces,
-/// título, ubicación y meta (recámaras/baños/metros).
+/// Tarjeta de propiedad 
 class _TarjetaPropiedad extends StatelessWidget {
   const _TarjetaPropiedad({
     required this.operacion,
