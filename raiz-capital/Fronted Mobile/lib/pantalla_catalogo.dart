@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'datos_ejemplo.dart';
 import 'logo_raiz_capital.dart';
+import 'modelo_propiedad.dart';
+import 'pantalla_detalle_propiedad.dart';
 import 'pantalla_inicio_sesion.dart';
 import 'tema_app.dart';
 
@@ -68,44 +71,33 @@ class PantallaCatalogo extends StatelessWidget {
           Text('Propiedades destacadas', style: temaDeTexto.headlineSmall),
           const SizedBox(height: 4),
           // aqui va la conexion con el backend Java
-          
+          // Endpoint esperado: GET /api/propiedades 
 
-          // TODO: reemplazar esta lista de ejemplo por las propiedades
-          // reales que devuelva la API.
-          const _TarjetaPropiedad(
-            operacion: 'VENTA',
-            precio: '\$2,450,000',
-            titulo: 'Casa en Colonia Cacho',
-            ubicacion: 'Tijuana, B.C.',
-            recamaras: 3,
-            banos: 2,
-            metros: 180,
-          ),
-          const SizedBox(height: 18),
-          const _TarjetaPropiedad(
-            operacion: 'RENTA',
-            precio: '\$18,500/mes',
-            titulo: 'Departamento en Zona Río',
-            ubicacion: 'Tijuana, B.C.',
-            recamaras: 2,
-            banos: 1,
-            metros: 90,
-          ),
-          const SizedBox(height: 18),
-          const _TarjetaPropiedad(
-            operacion: 'VENTA',
-            precio: '\$1,890,000',
-            titulo: 'Casa en Playas de Tijuana',
-            ubicacion: 'Tijuana, B.C.',
-            recamaras: 3,
-            banos: 2,
-            metros: 150,
-          ),
+          Text('Mostrando ${propiedadesEjemplo.length} propiedades', style: temaDeTexto.bodyMedium),
+          const SizedBox(height: 16),
+ 
+          // Mientras no exista backend, se listan las propiedades de
+          // datos_ejemplo.dart. Al conectar la API, esto se reemplaza por
+          // el resultado de GET /api/propiedades.
+          for (final propiedad in propiedadesEjemplo) ...[
+            _TarjetaPropiedad(
+              propiedad: propiedad,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PantallaDetallePropiedad(propiedad: propiedad),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+          ],
         ],
       ),
     );
   }
 }
+
 
 /// Tarjeta de búsqueda con filtros 
 /// Por ahora son placeholders visuales; 
@@ -206,113 +198,108 @@ class _CampoFiltro extends StatelessWidget {
 
 /// Tarjeta de propiedad 
 class _TarjetaPropiedad extends StatelessWidget {
-  const _TarjetaPropiedad({
-    required this.operacion,
-    required this.precio,
-    required this.titulo,
-    required this.ubicacion,
-    required this.recamaras,
-    required this.banos,
-    required this.metros,
-  });
-
-  final String operacion;
-  final String precio;
-  final String titulo;
-  final String ubicacion;
-  final int recamaras;
-  final int banos;
-  final int metros;
-
+  const _TarjetaPropiedad({required this.propiedad, required this.onTap});
+ 
+  final Propiedad propiedad;
+  final VoidCallback onTap;
+ 
   @override
   Widget build(BuildContext context) {
     final temaDeTexto = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: ColoresApp.tarjeta,
+    final p = propiedad;
+ 
+    return Material(
+      color: ColoresApp.tarjeta,
+      borderRadius: BorderRadius.circular(TemaApp.radio),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(TemaApp.radio),
-        border: Border.all(color: ColoresApp.borde),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // .property-media: degradado navy -> navy-light -> wine
-          Stack(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(TemaApp.radio),
+            border: Border.all(color: ColoresApp.borde),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 150,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      ColoresApp.azulNoche,
-                      ColoresApp.azulNocheClaro,
-                      ColoresApp.vino,
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    operacion,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: ColoresApp.azulNoche,
-                      letterSpacing: 0.4,
+              // .property-media: degradado navy -> navy-light -> wine
+              Stack(
+                children: [
+                  Container(
+                    height: 150,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          ColoresApp.azulNoche,
+                          ColoresApp.azulNocheClaro,
+                          ColoresApp.vino,
+                        ],
+                      ),
                     ),
                   ),
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        p.operacion,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: ColoresApp.azulNoche,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.precio,
+                      style: temaDeTexto.headlineSmall?.copyWith(fontSize: 19),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      p.titulo,
+                      style: temaDeTexto.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(p.ubicacion, style: temaDeTexto.bodyMedium),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.only(top: 10),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: ColoresApp.borde)),
+                      ),
+                      child: Row(
+                        children: [
+                          _MetaItem(icono: Icons.bed_outlined, texto: '${p.recamaras} rec'),
+                          const SizedBox(width: 14),
+                          _MetaItem(icono: Icons.bathtub_outlined, texto: '${p.banos} baños'),
+                          const SizedBox(width: 14),
+                          _MetaItem(icono: Icons.square_foot, texto: '${p.metros} m²'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  precio,
-                  style: temaDeTexto.headlineSmall?.copyWith(fontSize: 19),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  titulo,
-                  style: temaDeTexto.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(ubicacion, style: temaDeTexto.bodyMedium),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.only(top: 10),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: ColoresApp.borde)),
-                  ),
-                  child: Row(
-                    children: [
-                      _MetaItem(icono: Icons.bed_outlined, texto: '$recamaras rec'),
-                      const SizedBox(width: 14),
-                      _MetaItem(icono: Icons.bathtub_outlined, texto: '$banos baños'),
-                      const SizedBox(width: 14),
-                      _MetaItem(icono: Icons.square_foot, texto: '$metros m²'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
