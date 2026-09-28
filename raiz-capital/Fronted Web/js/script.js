@@ -32,68 +32,37 @@ const whatsappBtn = document.getElementById('whatsappBtn');
 whatsappBtn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, vi su página web y me interesa una propiedad.')}`;
 
 // --- Datos de ejemplo (mock) ---
-const SAMPLE_PROPERTIES = [
-  {
-    titulo: 'Casa en privada Los Encinos',
-    precio: 3450000,
-    zona: 'Zona Este',
-    tipo: 'casa',
-    operacion: 'venta',
-    recamaras: 3,
-    banos: 2,
-    m2: 180
-  },
-  {
-    titulo: 'Departamento vista al mar',
-    precio: 18500,
-    zona: 'Playas de Tijuana',
-    tipo: 'departamento',
-    operacion: 'renta',
-    recamaras: 2,
-    banos: 2,
-    m2: 95
-  },
-  {
-    titulo: 'Casa remodelada Centro',
-    precio: 2890000,
-    zona: 'Zona Río / Centro',
-    tipo: 'casa',
-    operacion: 'venta',
-    recamaras: 3,
-    banos: 1,
-    m2: 140
-  },
-  {
-    titulo: 'Terreno esquina Zona Norte',
-    precio: 1250000,
-    zona: 'Zona Norte',
-    tipo: 'terreno',
-    operacion: 'venta',
-    recamaras: 0,
-    banos: 0,
-    m2: 300
-  },
-  {
-    titulo: 'Depto. amueblado Centro',
-    precio: 12000,
-    zona: 'Zona Río / Centro',
-    tipo: 'departamento',
-    operacion: 'renta',
-    recamaras: 1,
-    banos: 1,
-    m2: 60
-  },
-  {
-    titulo: 'Casa con alberca Playas',
-    precio: 6200000,
-    zona: 'Playas de Tijuana',
-    tipo: 'casa',
-    operacion: 'venta',
-    recamaras: 4,
-    banos: 3,
-    m2: 260
+const API_URL = 'http://localhost:8080/api/propiedades';
+let propiedades = [];
+
+// Traduce el formato de la API al formato que ya usa tu web
+function adaptarPropiedad(p) {
+  return {
+    id: p.id,
+    titulo: p.titulo,
+    precio: Number(p.precio),
+    zona: p.zona ? p.zona.nombreZona : '',
+    tipo: (p.tipo || '').toLowerCase(),
+    operacion: (p.operacion || '').toLowerCase(),
+    recamaras: p.recamaras,
+    banos: p.banos,
+    m2: Number(p.superficieM2)
+  };
+}
+
+async function cargarPropiedades() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error('Error ' + res.status);
+    const data = await res.json();
+    propiedades = data.map(adaptarPropiedad);
+    renderProperties(propiedades);
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = '<p class="no-results">No pudimos cargar las propiedades. Intenta de nuevo en unos minutos.</p>';
+    resultsCount.innerHTML = '';
   }
-];
+}
 
 const grid = document.getElementById('propertyGrid');
 const resultsCount = document.getElementById('resultsCount');
@@ -261,7 +230,7 @@ searchForm.addEventListener('submit', (e) => {
   const zona = document.getElementById('zona').value.trim();
   const precioMax = document.getElementById('precio').value;
 
-  const filtered = SAMPLE_PROPERTIES.filter(p => {
+  const filtered = propiedades.filter(p => {
     if (tipo && p.tipo !== tipo) return false;
     if (operacion && p.operacion !== operacion) return false;
     if (zona && !p.zona.toLowerCase().includes(zona.toLowerCase())) return false;
@@ -274,4 +243,4 @@ searchForm.addEventListener('submit', (e) => {
 });
 
 // --- Carga inicial ---
-renderProperties(SAMPLE_PROPERTIES);
+cargarPropiedades();

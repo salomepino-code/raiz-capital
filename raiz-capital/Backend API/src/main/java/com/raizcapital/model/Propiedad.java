@@ -1,8 +1,10 @@
 package com.raizcapital.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -57,6 +59,8 @@ public class Propiedad {
     private Set<String> caracteristicas = new HashSet<>();
 
     // Relación recursiva N:M -> propiedad_recomendacion
+    // @JsonIgnore evita un ciclo infinito al convertir a JSON (más adelante se expone como lista de ids)
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
         name = "propiedad_recomendacion",
@@ -65,7 +69,11 @@ public class Propiedad {
     )
     private Set<Propiedad> recomendaciones = new HashSet<>();
 
-    public enum Tipo { DEPARTAMENTO, CASA }
+    @OneToMany(mappedBy = "propiedad")
+    @OrderBy("orden ASC")
+    private List<Imagen> imagenes;
+
+    public enum Tipo { DEPARTAMENTO, CASA, TERRENO, LOCAL }
     public enum Operacion { RENTA, VENTA }
     public enum Estado { DISPONIBLE, VENDIDA, RENTADA }
 
@@ -108,6 +116,7 @@ public class Propiedad {
     public void setEstado(Estado estado) { this.estado = estado; }
     public Set<String> getCaracteristicas() { return caracteristicas; }
     public void setCaracteristicas(Set<String> caracteristicas) { this.caracteristicas = caracteristicas; }
+    public List<Imagen> getImagenes() { return imagenes; }
     public Set<Propiedad> getRecomendaciones() { return recomendaciones; }
     public void setRecomendaciones(Set<Propiedad> recomendaciones) { this.recomendaciones = recomendaciones; }
 }

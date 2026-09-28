@@ -1,5 +1,6 @@
 package com.raizcapital.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -16,6 +17,7 @@ public class Usuario {
     @Column(unique = true, nullable = false)
     private String correo;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // nunca se devuelve en las respuestas JSON
     @Column(name = "contrasena", nullable = false)
     private String contrasena; // guardar siempre con hash (BCrypt), nunca texto plano
 
