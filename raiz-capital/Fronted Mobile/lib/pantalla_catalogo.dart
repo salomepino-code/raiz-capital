@@ -1,19 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'datos_ejemplo.dart';
 import 'logo_raiz_capital.dart';
 import 'modelo_propiedad.dart';
 import 'pantalla_detalle_propiedad.dart';
 import 'pantalla_inicio_sesion.dart';
+import 'servicio_propiedades.dart';
 import 'tema_app.dart';
 
-/// Pantalla de catálogo — puerta de entrada de la app 
+/// Pantalla de catálogo — puerta de entrada de la app
 /// Cualquier visitante puede ver esto sin cuenta.
 /// El ícono de perfil lleva al login, que es secundario y opcional.
 /// Estructura calcada del index.html de la web
 
-class PantallaCatalogo extends StatelessWidget {
+class PantallaCatalogo extends StatefulWidget {
   const PantallaCatalogo({super.key});
+
+  @override
+  State<PantallaCatalogo> createState() => _PantallaCatalogoState();
+}
+
+class _PantallaCatalogoState extends State<PantallaCatalogo> {
+  final ServicioPropiedades _servicioPropiedades = ServicioPropiedades();
+  late Future<List<Propiedad>> _futurePropiedades;
+
+  @override
+  void initState() {
+    super.initState();
+    _futurePropiedades = _servicioPropiedades.obtenerPropiedades();
+  }
+
+  Future<void> _recargar() async {
+    setState(() {
+      _futurePropiedades = _servicioPropiedades.obtenerPropiedades();
+    });
+    await _futurePropiedades;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,70 +59,128 @@ class PantallaCatalogo extends StatelessWidget {
           const SizedBox(width: 4),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        children: [
-          // ===== HERO =====
-          Text('BIENVENIDO A RAÍZ CAPITAL', style: temaDeTexto.labelSmall),
-          const SizedBox(height: 10),
-          RichText(
-            text: TextSpan(
-              style: temaDeTexto.displayLarge,
-              children: [
-                const TextSpan(text: 'Donde tu patrimonio crece seguro'),
-                const TextSpan(text: '.'),
-              ],
+      body: RefreshIndicator(
+        onRefresh: _recargar,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          children: [
+            // ===== HERO =====
+            Text('BIENVENIDO A RAÍZ CAPITAL', style: temaDeTexto.labelSmall),
+            const SizedBox(height: 10),
+            RichText(
+              text: TextSpan(
+                style: temaDeTexto.displayLarge,
+                children: [
+                  const TextSpan(text: 'Donde tu patrimonio crece seguro'),
+                  const TextSpan(text: '.'),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Casas, departamentos, locales y terrenos en venta y renta.',
-            style: temaDeTexto.bodyMedium,
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 10),
+            Text(
+              'Casas, departamentos, locales y terrenos en venta y renta.',
+              style: temaDeTexto.bodyMedium,
+            ),
+            const SizedBox(height: 24),
 
-          // ===== BUSCADOR / FILTROS =====
-          const _TarjetaBusqueda(),
+            // ===== BUSCADOR / FILTROS =====
+            const _TarjetaBusqueda(),
 
-          const SizedBox(height: 36),
+            const SizedBox(height: 36),
 
-          // ===== LISTADO =====
-          Text('INVENTARIO ACTUAL', style: temaDeTexto.labelSmall),
-          const SizedBox(height: 4),
-          Text('Propiedades destacadas', style: temaDeTexto.headlineSmall),
-          const SizedBox(height: 4),
-          // aqui va la conexion con el backend Java
-          // Endpoint esperado: GET /api/propiedades 
+            // ===== LISTADO =====
+            Text('INVENTARIO ACTUAL', style: temaDeTexto.labelSmall),
+            const SizedBox(height: 4),
+            Text('Propiedades destacadas', style: temaDeTexto.headlineSmall),
+            const SizedBox(height: 16),
 
-          Text('Mostrando ${propiedadesEjemplo.length} propiedades', style: temaDeTexto.bodyMedium),
-          const SizedBox(height: 16),
- 
-          // Mientras no exista backend, se listan las propiedades de
-          // datos_ejemplo.dart. Al conectar la API, esto se reemplaza por
-          // el resultado de GET /api/propiedades.
-          for (final propiedad in propiedadesEjemplo) ...[
-            _TarjetaPropiedad(
-              propiedad: propiedad,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PantallaDetallePropiedad(propiedad: propiedad),
-                  ),
+            FutureBuilder<List<Propiedad>>(
+              future: _futurePropiedades,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Column(
+                      children: [
+                        Text(
+                          'No pudimos cargar las propiedades.',
+                          style: temaDeTexto.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Verifica que el backend esté corriendo e intenta de nuevo.',
+                          style: temaDeTexto.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 14),
+                        ElevatedButton(
+                          onPressed: _recargar,
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final propiedades = snapshot.data ?? [];
+
+                if (propiedades.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'Todavía no hay propiedades publicadas.',
+                      style: temaDeTexto.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Mostrando ${propiedades.length} propiedades',
+                        style: temaDeTexto.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    for (final propiedad in propiedades) ...[
+                      _TarjetaPropiedad(
+                        propiedad: propiedad,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  PantallaDetallePropiedad(propiedad: propiedad),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+                  ],
                 );
               },
             ),
-            const SizedBox(height: 18),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-
-/// Tarjeta de búsqueda con filtros 
-/// Por ahora son placeholders visuales; 
-/// la lógica de filtrado real se conecta después 
+/// Tarjeta de búsqueda con filtros
+/// Por ahora son placeholders visuales;
+/// la lógica de filtrado real se conecta después
 class _TarjetaBusqueda extends StatelessWidget {
   const _TarjetaBusqueda();
 
@@ -196,18 +275,18 @@ class _CampoFiltro extends StatelessWidget {
   }
 }
 
-/// Tarjeta de propiedad 
+/// Tarjeta de propiedad
 class _TarjetaPropiedad extends StatelessWidget {
   const _TarjetaPropiedad({required this.propiedad, required this.onTap});
- 
+
   final Propiedad propiedad;
   final VoidCallback onTap;
- 
+
   @override
   Widget build(BuildContext context) {
     final temaDeTexto = Theme.of(context).textTheme;
     final p = propiedad;
- 
+
     return Material(
       color: ColoresApp.tarjeta,
       borderRadius: BorderRadius.circular(TemaApp.radio),
