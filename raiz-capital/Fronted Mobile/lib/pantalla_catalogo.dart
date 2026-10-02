@@ -36,6 +36,24 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
     await _futurePropiedades;
   }
 
+  /// Se llama al presionar "Buscar propiedades" en _TarjetaBusqueda.
+  /// Manda los filtros como query params a GET /api/propiedades (RF04).
+  void _aplicarFiltros({
+    String? tipo,
+    String? operacion,
+    String? zona,
+    double? precioMax,
+  }) {
+    setState(() {
+      _futurePropiedades = _servicioPropiedades.obtenerPropiedades(
+        tipo: tipo,
+        operacion: operacion,
+        zona: zona,
+        precioMax: precioMax,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final temaDeTexto = Theme.of(context).textTheme;
@@ -84,7 +102,7 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
             const SizedBox(height: 24),
 
             // ===== BUSCADOR / FILTROS =====
-            const _TarjetaBusqueda(),
+            _TarjetaBusqueda(onBuscar: _aplicarFiltros),
 
             const SizedBox(height: 36),
 
@@ -181,9 +199,61 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
 /// Tarjeta de búsqueda con filtros
 /// Por ahora son placeholders visuales;
 /// la lógica de filtrado real se conecta después
-class _TarjetaBusqueda extends StatelessWidget {
-  const _TarjetaBusqueda();
-
+class _TarjetaBusqueda extends StatefulWidget {
+  const _TarjetaBusqueda({required this.onBuscar});
+  
+  final void Function({
+    String? tipo,
+    String? operacion,
+    String? zona,
+    double? precioMax,
+  }) onBuscar;
+ 
+  @override
+  State<_TarjetaBusqueda> createState() => _EstadoTarjetaBusqueda();
+}
+ 
+class _EstadoTarjetaBusqueda extends State<_TarjetaBusqueda> {
+  // null = "Todos" / "Todas" (sin filtrar por ese campo).
+  String? _tipoSeleccionado;
+  String? _operacionSeleccionada;
+ 
+  final _controladorZona = TextEditingController();
+  final _controladorPrecioMax = TextEditingController();
+ 
+  // Coinciden con el enum Tipo de Propiedad.java (en minúscula; el
+  // backend normaliza mayúsculas/minúsculas).
+  static const Map<String?, String> _opcionesTipo = {
+    null: 'Todos',
+    'casa': 'Casa',
+    'departamento': 'Departamento',
+    'terreno': 'Terreno',
+    'local': 'Local',
+  };
+ 
+  static const Map<String?, String> _opcionesOperacion = {
+    null: 'Todas',
+    'venta': 'Venta',
+    'renta': 'Renta',
+  };
+ 
+  @override
+  void dispose() {
+    _controladorZona.dispose();
+    _controladorPrecioMax.dispose();
+    super.dispose();
+  }
+ 
+  void _buscar() {
+    final textoPrecio = _controladorPrecioMax.text.trim();
+    widget.onBuscar(
+      tipo: _tipoSeleccionado,
+      operacion: _operacionSeleccionada,
+      zona: _controladorZona.text.trim().isEmpty ? null : _controladorZona.text.trim(),
+      precioMax: textoPrecio.isEmpty ? null : double.tryParse(textoPrecio),
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -205,24 +275,49 @@ class _TarjetaBusqueda extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _CampoFiltro(etiqueta: 'TIPO', valor: 'Todos')),
+              Expanded(
+                child: _CampoFiltroDropdown(
+                  etiqueta: 'TIPO',
+                  valor: _tipoSeleccionado,
+                  opciones: _opcionesTipo,
+                  onChanged: (v) => setState(() => _tipoSeleccionado = v),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _CampoFiltro(etiqueta: 'OPERACIÓN', valor: 'Todas')),
+              Expanded(
+                child: _CampoFiltroDropdown(
+                  etiqueta: 'OPERACIÓN',
+                  valor: _operacionSeleccionada,
+                  opciones: _opcionesOperacion,
+                  onChanged: (v) => setState(() => _operacionSeleccionada = v),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _CampoFiltro(etiqueta: 'ZONA', valor: 'Buscar zona...')),
+              Expanded(
+                child: _CampoFiltroTexto(
+                  etiqueta: 'ZONA',
+                  controlador: _controladorZona,
+                  pista: 'Buscar zona...',
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _CampoFiltro(etiqueta: 'PRECIO MÁX.', valor: 'Sin límite')),
+              Expanded(
+                child: _CampoFiltroTexto(
+                  etiqueta: 'PRECIO MÁX.',
+                  controlador: _controladorPrecioMax,
+                  pista: 'Sin límite',
+                  teclado: TextInputType.number,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 18),
           ElevatedButton(
-            onPressed: () {
-              // aqui va la logica de busqueda/filtrado (RF04)
-            },
+            onPressed: _buscar,
             child: const Text('Buscar propiedades'),
           ),
         ],
@@ -230,13 +325,22 @@ class _TarjetaBusqueda extends StatelessWidget {
     );
   }
 }
-
-class _CampoFiltro extends StatelessWidget {
-  const _CampoFiltro({required this.etiqueta, required this.valor});
-
+ 
+/// Caja con el mismo estilo visual de antes, pero con un dropdown real
+/// adentro (tipo y operación son listas fijas, no cambian).
+class _CampoFiltroDropdown extends StatelessWidget {
+  const _CampoFiltroDropdown({
+    required this.etiqueta,
+    required this.valor,
+    required this.opciones,
+    required this.onChanged,
+  });
+ 
   final String etiqueta;
-  final String valor;
-
+  final String? valor;
+  final Map<String?, String> opciones;
+  final ValueChanged<String?> onChanged;
+ 
   @override
   Widget build(BuildContext context) {
     final temaDeTexto = Theme.of(context).textTheme;
@@ -254,20 +358,83 @@ class _CampoFiltro extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: ColoresApp.crema,
             borderRadius: BorderRadius.circular(TemaApp.radio),
             border: Border.all(color: ColoresApp.borde),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(valor, style: temaDeTexto.bodyMedium, overflow: TextOverflow.ellipsis),
-              ),
-              const Icon(Icons.keyboard_arrow_down, size: 18, color: ColoresApp.textoApagado),
-            ],
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: valor,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: ColoresApp.textoApagado),
+              style: temaDeTexto.bodyMedium,
+              dropdownColor: ColoresApp.tarjeta,
+              items: opciones.entries
+                  .map((e) => DropdownMenuItem<String?>(
+                        value: e.key,
+                        child: Text(e.value, overflow: TextOverflow.ellipsis),
+                      ))
+                  .toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+ 
+/// Caja con el mismo estilo visual de antes, pero con un TextField real
+/// adentro (zona es búsqueda libre por coincidencia parcial, igual que
+/// el autocompletar de la web; precio máximo es numérico).
+class _CampoFiltroTexto extends StatelessWidget {
+  const _CampoFiltroTexto({
+    required this.etiqueta,
+    required this.controlador,
+    required this.pista,
+    this.teclado = TextInputType.text,
+  });
+ 
+  final String etiqueta;
+  final TextEditingController controlador;
+  final String pista;
+  final TextInputType teclado;
+ 
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          etiqueta,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: ColoresApp.textoApagado,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: ColoresApp.crema,
+            borderRadius: BorderRadius.circular(TemaApp.radio),
+            border: Border.all(color: ColoresApp.borde),
+          ),
+          child: TextField(
+            controller: controlador,
+            keyboardType: teclado,
+            style: Theme.of(context).textTheme.bodyMedium,
+            decoration: InputDecoration(
+              isDense: true,
+              filled: false,
+              border: InputBorder.none,
+              hintText: pista,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+            ),
           ),
         ),
       ],

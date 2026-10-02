@@ -11,8 +11,28 @@ const String _urlBase = 'http://localhost:8080';
 class ServicioPropiedades {
   /// Trae el catálogo completo desde GET /api/propiedades y lo convierte
   /// a la misma clase Propiedad que ya usa pantalla_catalogo.dart.
-  Future<List<Propiedad>> obtenerPropiedades() async {
-    final respuesta = await http.get(Uri.parse('$_urlBase/api/propiedades'));
+  /// 
+  // Todos los filtros son opcionales (RF04): si no mandas ninguno, trae
+  /// el catálogo completo. 'tipo' acepta 'casa'/'departamento'/'terreno'/
+  /// 'local', 'operacion' acepta 'venta'/'renta' — en cualquier
+  /// mayúscula/minúscula, el backend los normaliza.
+  Future<List<Propiedad>> obtenerPropiedades({
+    String? tipo,
+    String? operacion,
+    String? zona,
+    double? precioMax,
+  }) async {
+    final Map<String, String> parametros = {};
+    if (tipo != null && tipo.isNotEmpty) parametros['tipo'] = tipo;
+    if (operacion != null && operacion.isNotEmpty) parametros['operacion'] = operacion;
+    if (zona != null && zona.isNotEmpty) parametros['zona'] = zona;
+    if (precioMax != null) parametros['precioMax'] = precioMax.toString();
+ 
+    final uri = Uri.parse('$_urlBase/api/propiedades').replace(
+      queryParameters: parametros.isEmpty ? null : parametros,
+    );
+    
+    final respuesta = await http.get(uri);
 
     if (respuesta.statusCode != 200) {
       throw Exception(
