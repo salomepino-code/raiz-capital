@@ -4,13 +4,39 @@ import 'logo_raiz_capital.dart';
 import 'modelo_propiedad.dart';
 import 'pantalla_detalle_propiedad.dart';
 import 'pantalla_inicio_sesion.dart';
+import 'pantalla_publicar_propiedad.dart';
 import 'servicio_propiedades.dart';
+import 'sesion_usuario.dart';
 import 'tema_app.dart';
 
 /// Pantalla de catálogo — puerta de entrada de la app
 /// Cualquier visitante puede ver esto sin cuenta.
 /// El ícono de perfil lleva al login, que es secundario y opcional.
 /// Estructura calcada del index.html de la web
+
+const List<String> _tiposDisponibles = ['Todos', 'Casa', 'Departamento', 'Terreno', 'Local'];
+const List<String> _operacionesDisponibles = ['Todas', 'Venta', 'Renta'];
+
+// Mismos rangos que RANGOS_PRECIO en script.js (la web)
+const Map<String, List<Map<String, String>>> _rangosPrecio = {
+  'VENTA': [
+    {'value': '2000000', 'label': 'Hasta \$2,000,000'},
+    {'value': '4000000', 'label': 'Hasta \$4,000,000'},
+    {'value': '6000000', 'label': 'Hasta \$6,000,000'},
+    {'value': '8000000', 'label': 'Hasta \$8,000,000'},
+    {'value': '10000000', 'label': 'Hasta \$10,000,000'},
+    {'value': '15000000', 'label': 'Hasta \$15,000,000'},
+  ],
+  'RENTA': [
+    {'value': '10000', 'label': 'Hasta \$10,000'},
+    {'value': '15000', 'label': 'Hasta \$15,000'},
+    {'value': '20000', 'label': 'Hasta \$20,000'},
+    {'value': '25000', 'label': 'Hasta \$25,000'},
+    {'value': '30000', 'label': 'Hasta \$30,000'},
+    {'value': '40000', 'label': 'Hasta \$40,000'},
+    {'value': '50000', 'label': 'Hasta \$50,000'},
+  ],
+};
 
 class PantallaCatalogo extends StatefulWidget {
   const PantallaCatalogo({super.key});
@@ -21,36 +47,66 @@ class PantallaCatalogo extends StatefulWidget {
 
 class _PantallaCatalogoState extends State<PantallaCatalogo> {
   final ServicioPropiedades _servicioPropiedades = ServicioPropiedades();
-  late Future<List<Propiedad>> _futurePropiedades;
+  final TextEditingController _controladorZona = TextEditingController();
+
+  bool _cargando = true;
+  String? _error;
+  List<Propiedad> _todas = [];
+  List<Propiedad> _filtradas = [];
+
+  String _tipoSeleccionado = 'Todos';
+  String _operacionSeleccionada = 'Todas';
+  String? _precioMaxSeleccionado; // guarda el 'value' del rango, no el label
 
   @override
   void initState() {
     super.initState();
-    _futurePropiedades = _servicioPropiedades.obtenerPropiedades();
+    _cargarPropiedades();
   }
 
-  Future<void> _recargar() async {
+  @override
+  void dispose() {
+    _controladorZona.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargarPropiedades() async {
     setState(() {
-      _futurePropiedades = _servicioPropiedades.obtenerPropiedades();
+      _cargando = true;
+      _error = null;
     });
-    await _futurePropiedades;
+    try {
+      final datos = await _servicioPropiedades.obtenerPropiedades();
+      setState(() {
+        _todas = datos;
+        _filtradas = datos;
+        _cargando = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _cargando = false;
+      });
+    }
   }
 
-  /// Se llama al presionar "Buscar propiedades" en _TarjetaBusqueda.
-  /// Manda los filtros como query params a GET /api/propiedades (RF04).
-  void _aplicarFiltros({
-    String? tipo,
-    String? operacion,
-    String? zona,
-    double? precioMax,
-  }) {
+  void _aplicarFiltros() {
+    final zonaBuscada = _controladorZona.text.trim().toLowerCase();
+    final tipoFiltro = _tipoSeleccionado == 'Todos' ? null : _tipoSeleccionado.toUpperCase();
+    final operacionFiltro =
+        _operacionSeleccionada == 'Todas' ? null : _operacionSeleccionada.toUpperCase();
+    final precioMax = _precioMaxSeleccionado != null ? num.tryParse(_precioMaxSeleccionado!) : null;
+
     setState(() {
-      _futurePropiedades = _servicioPropiedades.obtenerPropiedades(
-        tipo: tipo,
-        operacion: operacion,
-        zona: zona,
-        precioMax: precioMax,
-      );
+      _filtradas = _todas.where((p) {
+        if (tipoFiltro != null && p.tipo != tipoFiltro) return false;
+        if (operacionFiltro != null && p.operacion != operacionFiltro) return false;
+        if (zonaBuscada.isNotEmpty && !p.zonaNombre.toLowerCase().contains(zonaBuscada)) {
+          return false;
+        }
+        if (precioMax != null && p.precioNumerico > precioMax) return false;
+        return true;
+      }).toList();
     });
   }
 
@@ -65,20 +121,41 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
         titleSpacing: 20,
         title: const LogoRaizCapital(altura: 60),
         actions: [
+          if (SesionUsuario.haySesion && SesionUsuario.actual!.puedePublicar)
+            IconButton(
+              icon: const Icon(Icons.add_home_outlined, color: ColoresApp.azulNoche),
+              tooltip: 'Publicar propiedad',
+              onPressed: () async {
+                final sePublico = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(builder: (_) => const PantallaPublicarPropiedad()),
+                );
+                if (sePublico == true) {
+                  _cargarPropiedades();
+                }
+              },
+            ),
           IconButton(
-            icon: const Icon(Icons.person_outline, color: ColoresApp.azulNoche),
-            tooltip: 'Iniciar sesión',
-            onPressed: () {
-              Navigator.of(context).push(
+            icon: Icon(
+              SesionUsuario.haySesion ? Icons.person : Icons.person_outline,
+              color: ColoresApp.azulNoche,
+            ),
+            tooltip: SesionUsuario.haySesion ? SesionUsuario.actual!.nombre : 'Iniciar sesión',
+            onPressed: () async {
+              if (SesionUsuario.haySesion) {
+                setState(() => SesionUsuario.cerrarSesion());
+                return;
+              }
+              await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PantallaInicioSesion()),
               );
+              setState(() {}); // refresca el AppBar con el resultado del login
             },
           ),
           const SizedBox(width: 4),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _recargar,
+        onRefresh: _cargarPropiedades,
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           children: [
@@ -102,7 +179,19 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
             const SizedBox(height: 24),
 
             // ===== BUSCADOR / FILTROS =====
-            _TarjetaBusqueda(onBuscar: _aplicarFiltros),
+            _TarjetaBusqueda(
+              tipoSeleccionado: _tipoSeleccionado,
+              operacionSeleccionada: _operacionSeleccionada,
+              controladorZona: _controladorZona,
+              precioMaxSeleccionado: _precioMaxSeleccionado,
+              onTipoChanged: (v) => setState(() => _tipoSeleccionado = v),
+              onOperacionChanged: (v) => setState(() {
+                _operacionSeleccionada = v;
+                _precioMaxSeleccionado = null; // igual que actualizarRangosPrecio() en la web
+              }),
+              onPrecioMaxChanged: (v) => setState(() => _precioMaxSeleccionado = v),
+              onBuscar: _aplicarFiltros,
+            ),
 
             const SizedBox(height: 36),
 
@@ -112,150 +201,97 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
             Text('Propiedades destacadas', style: temaDeTexto.headlineSmall),
             const SizedBox(height: 16),
 
-            FutureBuilder<List<Propiedad>>(
-              future: _futurePropiedades,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Column(
-                      children: [
-                        Text(
-                          'No pudimos cargar las propiedades.',
-                          style: temaDeTexto.bodyLarge,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Verifica que el backend esté corriendo e intenta de nuevo.',
-                          style: temaDeTexto.bodyMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 14),
-                        ElevatedButton(
-                          onPressed: _recargar,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final propiedades = snapshot.data ?? [];
-
-                if (propiedades.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      'Todavía no hay propiedades publicadas.',
-                      style: temaDeTexto.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Mostrando ${propiedades.length} propiedades',
-                        style: temaDeTexto.bodyMedium,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    for (final propiedad in propiedades) ...[
-                      _TarjetaPropiedad(
-                        propiedad: propiedad,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PantallaDetallePropiedad(propiedad: propiedad),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 18),
-                    ],
-                  ],
-                );
-              },
-            ),
+            _buildContenidoListado(temaDeTexto),
           ],
         ),
       ),
     );
   }
-}
 
-/// Tarjeta de búsqueda con filtros
-/// Por ahora son placeholders visuales;
-/// la lógica de filtrado real se conecta después
-class _TarjetaBusqueda extends StatefulWidget {
-  const _TarjetaBusqueda({required this.onBuscar});
-  
-  final void Function({
-    String? tipo,
-    String? operacion,
-    String? zona,
-    double? precioMax,
-  }) onBuscar;
- 
-  @override
-  State<_TarjetaBusqueda> createState() => _EstadoTarjetaBusqueda();
-}
- 
-class _EstadoTarjetaBusqueda extends State<_TarjetaBusqueda> {
-  // null = "Todos" / "Todas" (sin filtrar por ese campo).
-  String? _tipoSeleccionado;
-  String? _operacionSeleccionada;
- 
-  final _controladorZona = TextEditingController();
-  final _controladorPrecioMax = TextEditingController();
- 
-  // Coinciden con el enum Tipo de Propiedad.java (en minúscula; el
-  // backend normaliza mayúsculas/minúsculas).
-  static const Map<String?, String> _opcionesTipo = {
-    null: 'Todos',
-    'casa': 'Casa',
-    'departamento': 'Departamento',
-    'terreno': 'Terreno',
-    'local': 'Local',
-  };
- 
-  static const Map<String?, String> _opcionesOperacion = {
-    null: 'Todas',
-    'venta': 'Venta',
-    'renta': 'Renta',
-  };
- 
-  @override
-  void dispose() {
-    _controladorZona.dispose();
-    _controladorPrecioMax.dispose();
-    super.dispose();
-  }
- 
-  void _buscar() {
-    final textoPrecio = _controladorPrecioMax.text.trim();
-    widget.onBuscar(
-      tipo: _tipoSeleccionado,
-      operacion: _operacionSeleccionada,
-      zona: _controladorZona.text.trim().isEmpty ? null : _controladorZona.text.trim(),
-      precioMax: textoPrecio.isEmpty ? null : double.tryParse(textoPrecio),
+  Widget _buildContenidoListado(TextTheme temaDeTexto) {
+    if (_cargando) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            Text('No pudimos cargar las propiedades.', style: temaDeTexto.bodyLarge, textAlign: TextAlign.center),
+            const SizedBox(height: 6),
+            Text('Verifica que el backend esté corriendo e intenta de nuevo.',
+                style: temaDeTexto.bodyMedium, textAlign: TextAlign.center),
+            const SizedBox(height: 14),
+            ElevatedButton(onPressed: _cargarPropiedades, child: const Text('Reintentar')),
+          ],
+        ),
+      );
+    }
+
+    if (_filtradas.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Text(
+          'No encontramos propiedades con esos filtros. Prueba ajustando el precio o la zona.',
+          style: temaDeTexto.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text('Mostrando ${_filtradas.length} propiedades', style: temaDeTexto.bodyMedium),
+        ),
+        const SizedBox(height: 16),
+        for (final propiedad in _filtradas) ...[
+          _TarjetaPropiedad(
+            propiedad: propiedad,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => PantallaDetallePropiedad(propiedad: propiedad)),
+              );
+            },
+          ),
+          const SizedBox(height: 18),
+        ],
+      ],
     );
   }
-  
+}
+
+/// Tarjeta de búsqueda con filtros reales, conectados al estado de la pantalla.
+class _TarjetaBusqueda extends StatelessWidget {
+  const _TarjetaBusqueda({
+    required this.tipoSeleccionado,
+    required this.operacionSeleccionada,
+    required this.controladorZona,
+    required this.precioMaxSeleccionado,
+    required this.onTipoChanged,
+    required this.onOperacionChanged,
+    required this.onPrecioMaxChanged,
+    required this.onBuscar,
+  });
+
+  final String tipoSeleccionado;
+  final String operacionSeleccionada;
+  final TextEditingController controladorZona;
+  final String? precioMaxSeleccionado;
+  final ValueChanged<String> onTipoChanged;
+  final ValueChanged<String> onOperacionChanged;
+  final ValueChanged<String?> onPrecioMaxChanged;
+  final VoidCallback onBuscar;
+
   @override
   Widget build(BuildContext context) {
+    final opcionesPrecio = _rangosPrecio[operacionSeleccionada.toUpperCase()] ?? [];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -278,18 +314,18 @@ class _EstadoTarjetaBusqueda extends State<_TarjetaBusqueda> {
               Expanded(
                 child: _CampoFiltroDropdown(
                   etiqueta: 'TIPO',
-                  valor: _tipoSeleccionado,
-                  opciones: _opcionesTipo,
-                  onChanged: (v) => setState(() => _tipoSeleccionado = v),
+                  valor: tipoSeleccionado,
+                  opciones: _tiposDisponibles,
+                  onChanged: onTipoChanged,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _CampoFiltroDropdown(
                   etiqueta: 'OPERACIÓN',
-                  valor: _operacionSeleccionada,
-                  opciones: _opcionesOperacion,
-                  onChanged: (v) => setState(() => _operacionSeleccionada = v),
+                  valor: operacionSeleccionada,
+                  opciones: _operacionesDisponibles,
+                  onChanged: onOperacionChanged,
                 ),
               ),
             ],
@@ -300,24 +336,29 @@ class _EstadoTarjetaBusqueda extends State<_TarjetaBusqueda> {
               Expanded(
                 child: _CampoFiltroTexto(
                   etiqueta: 'ZONA',
-                  controlador: _controladorZona,
-                  pista: 'Buscar zona...',
+                  controlador: controladorZona,
+                  placeholder: 'Buscar zona...',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _CampoFiltroTexto(
+                child: _CampoFiltroDropdown(
                   etiqueta: 'PRECIO MÁX.',
-                  controlador: _controladorPrecioMax,
-                  pista: 'Sin límite',
-                  teclado: TextInputType.number,
+                  valor: precioMaxSeleccionado,
+                  opciones: opcionesPrecio.map((r) => r['value']!).toList(),
+                  etiquetasOpciones: {for (final r in opcionesPrecio) r['value']!: r['label']!},
+                  valorMostrado: precioMaxSeleccionado == null
+                      ? 'Sin límite'
+                      : (opcionesPrecio.firstWhere((r) => r['value'] == precioMaxSeleccionado)['label']),
+                  onChanged: onPrecioMaxChanged,
+                  incluirOpcionVacia: true,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 18),
           ElevatedButton(
-            onPressed: _buscar,
+            onPressed: onBuscar,
             child: const Text('Buscar propiedades'),
           ),
         ],
@@ -325,22 +366,91 @@ class _EstadoTarjetaBusqueda extends State<_TarjetaBusqueda> {
     );
   }
 }
- 
-/// Caja con el mismo estilo visual de antes, pero con un dropdown real
-/// adentro (tipo y operación son listas fijas, no cambian).
+
+/// Campo de filtro tipo dropdown, con el mismo look que el diseño original
+/// (_CampoFiltro), pero funcional.
 class _CampoFiltroDropdown extends StatelessWidget {
   const _CampoFiltroDropdown({
     required this.etiqueta,
     required this.valor,
     required this.opciones,
     required this.onChanged,
+    this.etiquetasOpciones,
+    this.valorMostrado,
+    this.incluirOpcionVacia = false,
   });
- 
+
   final String etiqueta;
   final String? valor;
-  final Map<String?, String> opciones;
+  final List<String> opciones;
   final ValueChanged<String?> onChanged;
- 
+  final Map<String, String>? etiquetasOpciones;
+  final String? valorMostrado;
+  final bool incluirOpcionVacia;
+
+  @override
+  Widget build(BuildContext context) {
+    final temaDeTexto = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          etiqueta,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: ColoresApp.textoApagado,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          decoration: BoxDecoration(
+            color: ColoresApp.crema,
+            borderRadius: BorderRadius.circular(TemaApp.radio),
+            border: Border.all(color: ColoresApp.borde),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              isExpanded: true,
+              value: valor,
+              icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: ColoresApp.textoApagado),
+              style: temaDeTexto.bodyMedium,
+              items: [
+                if (incluirOpcionVacia)
+                  const DropdownMenuItem<String?>(value: null, child: Text('Sin límite')),
+                ...opciones.map(
+                  (o) => DropdownMenuItem<String?>(
+                    value: o,
+                    child: Text(
+                      etiquetasOpciones != null ? etiquetasOpciones![o] ?? o : o,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Campo de filtro de texto libre (usado para Zona), mismo look que el diseño original.
+class _CampoFiltroTexto extends StatelessWidget {
+  const _CampoFiltroTexto({
+    required this.etiqueta,
+    required this.controlador,
+    required this.placeholder,
+  });
+
+  final String etiqueta;
+  final TextEditingController controlador;
+  final String placeholder;
+
   @override
   Widget build(BuildContext context) {
     final temaDeTexto = Theme.of(context).textTheme;
@@ -364,76 +474,14 @@ class _CampoFiltroDropdown extends StatelessWidget {
             borderRadius: BorderRadius.circular(TemaApp.radio),
             border: Border.all(color: ColoresApp.borde),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String?>(
-              value: valor,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: ColoresApp.textoApagado),
-              style: temaDeTexto.bodyMedium,
-              dropdownColor: ColoresApp.tarjeta,
-              items: opciones.entries
-                  .map((e) => DropdownMenuItem<String?>(
-                        value: e.key,
-                        child: Text(e.value, overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
- 
-/// Caja con el mismo estilo visual de antes, pero con un TextField real
-/// adentro (zona es búsqueda libre por coincidencia parcial, igual que
-/// el autocompletar de la web; precio máximo es numérico).
-class _CampoFiltroTexto extends StatelessWidget {
-  const _CampoFiltroTexto({
-    required this.etiqueta,
-    required this.controlador,
-    required this.pista,
-    this.teclado = TextInputType.text,
-  });
- 
-  final String etiqueta;
-  final TextEditingController controlador;
-  final String pista;
-  final TextInputType teclado;
- 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          etiqueta,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: ColoresApp.textoApagado,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: ColoresApp.crema,
-            borderRadius: BorderRadius.circular(TemaApp.radio),
-            border: Border.all(color: ColoresApp.borde),
-          ),
           child: TextField(
             controller: controlador,
-            keyboardType: teclado,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: temaDeTexto.bodyMedium,
             decoration: InputDecoration(
               isDense: true,
-              filled: false,
               border: InputBorder.none,
-              hintText: pista,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              hintText: placeholder,
+              hintStyle: temaDeTexto.bodyMedium?.copyWith(color: ColoresApp.textoApagado),
             ),
           ),
         ),
@@ -469,7 +517,6 @@ class _TarjetaPropiedad extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // .property-media: degradado navy -> navy-light -> wine
               Stack(
                 children: [
                   Container(
@@ -513,15 +560,9 @@ class _TarjetaPropiedad extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      p.precio,
-                      style: temaDeTexto.headlineSmall?.copyWith(fontSize: 19),
-                    ),
+                    Text(p.precio, style: temaDeTexto.headlineSmall?.copyWith(fontSize: 19)),
                     const SizedBox(height: 4),
-                    Text(
-                      p.titulo,
-                      style: temaDeTexto.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                    ),
+                    Text(p.titulo, style: temaDeTexto.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text(p.ubicacion, style: temaDeTexto.bodyMedium),
                     const SizedBox(height: 12),

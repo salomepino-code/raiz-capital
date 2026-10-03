@@ -11,28 +11,8 @@ const String _urlBase = 'http://localhost:8080';
 class ServicioPropiedades {
   /// Trae el catálogo completo desde GET /api/propiedades y lo convierte
   /// a la misma clase Propiedad que ya usa pantalla_catalogo.dart.
-  /// 
-  // Todos los filtros son opcionales (RF04): si no mandas ninguno, trae
-  /// el catálogo completo. 'tipo' acepta 'casa'/'departamento'/'terreno'/
-  /// 'local', 'operacion' acepta 'venta'/'renta' — en cualquier
-  /// mayúscula/minúscula, el backend los normaliza.
-  Future<List<Propiedad>> obtenerPropiedades({
-    String? tipo,
-    String? operacion,
-    String? zona,
-    double? precioMax,
-  }) async {
-    final Map<String, String> parametros = {};
-    if (tipo != null && tipo.isNotEmpty) parametros['tipo'] = tipo;
-    if (operacion != null && operacion.isNotEmpty) parametros['operacion'] = operacion;
-    if (zona != null && zona.isNotEmpty) parametros['zona'] = zona;
-    if (precioMax != null) parametros['precioMax'] = precioMax.toString();
- 
-    final uri = Uri.parse('$_urlBase/api/propiedades').replace(
-      queryParameters: parametros.isEmpty ? null : parametros,
-    );
-    
-    final respuesta = await http.get(uri);
+  Future<List<Propiedad>> obtenerPropiedades() async {
+    final respuesta = await http.get(Uri.parse('$_urlBase/api/propiedades'));
 
     if (respuesta.statusCode != 200) {
       throw Exception(
@@ -44,11 +24,57 @@ class ServicioPropiedades {
     return datos.map((json) => _mapearPropiedad(json)).toList();
   }
 
+  /// Publica una propiedad nueva (POST /api/propiedades). idVendedor es el
+  /// id del usuario logueado (ver SesionUsuario); idZona viene del
+  /// dropdown de zona en el formulario.
+  Future<void> publicarPropiedad({
+    required int idVendedor,
+    required int idZona,
+    required String titulo,
+    required String descripcion,
+    required num precio,
+    required String tipo, // CASA, DEPARTAMENTO, TERRENO, LOCAL
+    required String operacion, // VENTA, RENTA
+    required int recamaras,
+    required int banos,
+    required num superficieM2,
+    String? calle,
+    String? colonia,
+    String? ubicacionMaps,
+    List<String> caracteristicas = const [],
+  }) async {
+    final respuesta = await http.post(
+      Uri.parse('$_urlBase/api/propiedades'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'idVendedor': idVendedor,
+        'idZona': idZona,
+        'titulo': titulo,
+        'descripcion': descripcion,
+        'precio': precio,
+        'tipo': tipo,
+        'operacion': operacion,
+        'recamaras': recamaras,
+        'banos': banos,
+        'superficieM2': superficieM2,
+        'calle': calle,
+        'colonia': colonia,
+        'ubicacionMaps': ubicacionMaps,
+        'caracteristicas': caracteristicas,
+      }),
+    );
+
+    if (respuesta.statusCode != 200) {
+      throw Exception('No se pudo publicar la propiedad (código ${respuesta.statusCode})');
+    }
+  }
+
   Propiedad _mapearPropiedad(Map<String, dynamic> json) {
     final String operacion = (json['operacion'] as String? ?? '').toUpperCase();
     final num precio = (json['precio'] as num?) ?? 0;
     final zona = json['zona'] as Map<String, dynamic>?;
     final String ciudad = zona?['ciudad'] as String? ?? '';
+    final String nombreZona = zona?['nombreZona'] as String? ?? '';
     final List<dynamic> caracteristicasJson =
         json['caracteristicas'] as List<dynamic>? ?? [];
     final List<dynamic> imagenesJson = json['imagenes'] as List<dynamic>? ?? [];
@@ -56,9 +82,12 @@ class ServicioPropiedades {
     return Propiedad(
       operacion: operacion,
       precio: _formatearPrecio(precio, operacion),
+      precioNumerico: precio,
       titulo: json['titulo'] as String? ?? '',
       // La API solo da ciudad (Tijuana/Rosarito); ambas son B.C.
       ubicacion: ciudad.isNotEmpty ? '$ciudad, B.C.' : '',
+      zonaNombre: nombreZona,
+      tipo: (json['tipo'] as String? ?? '').toUpperCase(),
       recamaras: (json['recamaras'] as num?)?.toInt() ?? 0,
       banos: (json['banos'] as num?)?.toInt() ?? 0,
       metros: (json['superficieM2'] as num?)?.round() ?? 0,

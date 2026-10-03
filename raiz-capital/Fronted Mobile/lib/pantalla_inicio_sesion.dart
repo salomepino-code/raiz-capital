@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'logo_raiz_capital.dart';
+import 'servicio_usuarios.dart';
+import 'sesion_usuario.dart';
 import 'tema_app.dart';
 
 /// Pantalla de inicio de sesión.
@@ -20,6 +22,7 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
   final _llaveFormulario = GlobalKey<FormState>();
   final _controladorCorreo = TextEditingController();
   final _controladorContrasena = TextEditingController();
+  final _servicioUsuarios = ServicioUsuarios();
 
   bool _ocultarContrasena = true;
   bool _cargando = false;
@@ -62,18 +65,29 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
 
     setState(() => _cargando = true);
 
-    // aqui va la conexion con el backend Java
-    // -> devuelve token/sesión y el rol del usuario (comprador/administrador),
-    // y redirige al catálogo si es exitoso.
-    //
-    // Simulación temporal mientras no existe el backend:
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final usuario = await _servicioUsuarios.iniciarSesion(
+        _controladorCorreo.text.trim(),
+        _controladorContrasena.text,
+      );
 
-    if (!mounted) return;
-    setState(() => _cargando = false);
+      if (!mounted) return;
+      setState(() => _cargando = false);
 
-    // TODO: reemplazar por la navegación real al catálogo tras login exitoso
-    // y por el manejo real de error (credenciales incorrectas, cuenta
+      if (usuario == null) {
+        setState(() => _errorInicioSesion = 'Correo o contraseña incorrectos.');
+        return;
+      }
+
+      SesionUsuario.actual = usuario;
+      Navigator.of(context).pop(); // regresa al catálogo, que ya se refresca solo
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _errorInicioSesion = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+      });
+    }
   }
 
   @override
@@ -178,9 +192,9 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
 /// Encabezado de marca: logo/wordmark en Fraunces + tagline en Inter.
 class _Marca extends StatelessWidget {
   const _Marca({required this.temaDeTexto});
- 
+
   final TextTheme temaDeTexto;
- 
+
   @override
   Widget build(BuildContext context) {
     return Column(
