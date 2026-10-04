@@ -42,6 +42,7 @@ class ServicioPropiedades {
     String? colonia,
     String? ubicacionMaps,
     List<String> caracteristicas = const [],
+    List<String> imagenesUrls = const [],
   }) async {
     final respuesta = await http.post(
       Uri.parse('$_urlBase/api/propiedades'),
@@ -61,6 +62,7 @@ class ServicioPropiedades {
         'colonia': colonia,
         'ubicacionMaps': ubicacionMaps,
         'caracteristicas': caracteristicas,
+        'imagenesUrls': imagenesUrls,
       }),
     );
 

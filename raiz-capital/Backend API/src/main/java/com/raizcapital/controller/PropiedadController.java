@@ -1,9 +1,11 @@
 package com.raizcapital.controller;
 
 import com.raizcapital.dto.PropiedadRequest;
+import com.raizcapital.model.Imagen;
 import com.raizcapital.model.Propiedad;
 import com.raizcapital.model.Usuario;
 import com.raizcapital.model.Zona;
+import com.raizcapital.repository.ImagenRepository;
 import com.raizcapital.repository.PropiedadRepository;
 import com.raizcapital.repository.UsuarioRepository;
 import com.raizcapital.repository.ZonaRepository;
@@ -28,6 +30,9 @@ public class PropiedadController {
 
     @Autowired
     private ZonaRepository zonaRepository;
+
+    @Autowired
+    private ImagenRepository imagenRepository;
 
     // GET /api/propiedades
     // GET /api/propiedades?tipo=casa&operacion=venta&zona=playas&precioMax=2000000
@@ -104,6 +109,22 @@ public class PropiedadController {
             propiedad.setCaracteristicas(new HashSet<>(datos.getCaracteristicas()));
         }
 
-        return ResponseEntity.ok(propiedadRepository.save(propiedad));
+        Propiedad propiedadGuardada = propiedadRepository.save(propiedad);
+
+        // Una fila en "imagen" por cada link (de Cloudinary u otro hosting)
+        // que se haya pegado en el formulario.
+        if (datos.getImagenesUrls() != null) {
+            int orden = 0;
+            for (String url : datos.getImagenesUrls()) {
+                if (url == null || url.isBlank()) continue;
+                Imagen imagen = new Imagen();
+                imagen.setPropiedad(propiedadGuardada);
+                imagen.setUrl(url.trim());
+                imagen.setOrden(orden++);
+                imagenRepository.save(imagen);
+            }
+        }
+
+        return ResponseEntity.ok(propiedadGuardada);
     }
 }

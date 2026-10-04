@@ -1,12 +1,14 @@
-/// Modelo de una propiedad. Por ahora se llena con datos de ejemplo
-/// directamente en el código; más adelante estos objetos se construirán
-/// a partir de la respuesta JSON del backend Java.
+/// Modelo de una propiedad. Los objetos se construyen a partir de la
+/// respuesta JSON del backend Java (ver servicio_propiedades.dart).
 class Propiedad {
   const Propiedad({
     required this.operacion,
     required this.precio,
+    required this.precioNumerico,
     required this.titulo,
     required this.ubicacion,
+    required this.zonaNombre,
+    required this.tipo,
     required this.recamaras,
     required this.banos,
     required this.metros,
@@ -18,22 +20,32 @@ class Propiedad {
 
   final String operacion;
   final String precio;
+
+  /// Precio real (sin formatear), necesario para filtrar por "precio máximo".
+  final num precioNumerico;
+
   final String titulo;
+
+  /// Texto para mostrar en la tarjeta, ej. "Tijuana, B.C.".
   final String ubicacion;
+
+  /// Nombre exacto de la zona (ej. "Playas de Tijuana"), usado para el
+  /// filtro de búsqueda por zona, igual que en la web.
+  final String zonaNombre;
+
+  /// Tipo en mayúsculas tal como lo maneja la API: CASA, DEPARTAMENTO,
+  /// TERRENO o LOCAL. Se usa para el filtro por tipo.
+  final String tipo;
+
   final int recamaras;
   final int banos;
   final int metros;
   final String descripcion;
   final List<String> caracteristicas;
 
-  /// Cuántas fotos simular en el carrusel (por ahora se repite el mismo
-  /// degradado de color esa cantidad de veces, solo para probar que el
-  /// carrusel funciona).
+  /// Cuántas fotos tiene la propiedad (para el carrusel).
   final int cantidadFotos;
 
   /// Link de Google Maps para esta propiedad específica.
-  // aqui va la conexion con la base de datos: cada propiedad traerá su
-  // propio mapsUrl (o su latitud/longitud) desde el backend. Por ahora
-  // todas usan un link de ejemplo genérico como placeholder.
   final String mapsUrl;
 }

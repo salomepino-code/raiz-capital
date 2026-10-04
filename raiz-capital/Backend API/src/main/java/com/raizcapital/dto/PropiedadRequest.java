@@ -21,6 +21,7 @@ public class PropiedadRequest {
     private String colonia;
     private String ubicacionMaps;
     private List<String> caracteristicas;
+    private List<String> imagenesUrls; // links de Cloudinary, en el orden en que se deben mostrar
 
     public Long getIdVendedor() { return idVendedor; }
     public void setIdVendedor(Long idVendedor) { this.idVendedor = idVendedor; }
@@ -50,4 +51,6 @@ public class PropiedadRequest {
     public void setUbicacionMaps(String ubicacionMaps) { this.ubicacionMaps = ubicacionMaps; }
     public List<String> getCaracteristicas() { return caracteristicas; }
     public void setCaracteristicas(List<String> caracteristicas) { this.caracteristicas = caracteristicas; }
+    public List<String> getImagenesUrls() { return imagenesUrls; }
+    public void setImagenesUrls(List<String> imagenesUrls) { this.imagenesUrls = imagenesUrls; }
 }

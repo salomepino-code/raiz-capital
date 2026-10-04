@@ -30,6 +30,7 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
   final _controladorColonia = TextEditingController();
   final _controladorUbicacionMaps = TextEditingController();
   final _controladorCaracteristicas = TextEditingController();
+  final _controladorImagenes = TextEditingController();
 
   String _tipo = 'CASA';
   String _operacion = 'VENTA';
@@ -59,6 +60,7 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
     _controladorColonia.dispose();
     _controladorUbicacionMaps.dispose();
     _controladorCaracteristicas.dispose();
+    _controladorImagenes.dispose();
     super.dispose();
   }
 
@@ -117,6 +119,12 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
           .where((c) => c.isNotEmpty)
           .toList();
 
+      final imagenesUrls = _controladorImagenes.text
+          .split(',')
+          .map((u) => u.trim())
+          .where((u) => u.isNotEmpty)
+          .toList();
+
       await _servicioPropiedades.publicarPropiedad(
         idVendedor: usuario.id,
         idZona: _idZonaSeleccionada!,
@@ -134,6 +142,7 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
             ? null
             : _controladorUbicacionMaps.text.trim(),
         caracteristicas: caracteristicas,
+        imagenesUrls: imagenesUrls,
       );
 
       if (!mounted) return;
@@ -274,6 +283,18 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                 TextFormField(
                   controller: _controladorCaracteristicas,
                   decoration: const InputDecoration(hintText: 'alberca, jardín, estacionamiento'),
+                ),
+                const SizedBox(height: 16),
+
+                Text('Fotos: pega aquí los links de Cloudinary (separados por coma)',
+                    style: temaDeTexto.bodyMedium),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _controladorImagenes,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'https://res.cloudinary.com/.../foto1.jpg, https://.../foto2.jpg',
+                  ),
                 ),
                 const SizedBox(height: 24),
 
