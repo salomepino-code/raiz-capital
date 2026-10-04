@@ -15,6 +15,7 @@ class Propiedad {
     required this.descripcion,
     required this.caracteristicas,
     required this.cantidadFotos,
+    required this.imagenesUrls,
     required this.mapsUrl,
   });
 
@@ -45,6 +46,9 @@ class Propiedad {
 
   /// Cuántas fotos tiene la propiedad (para el carrusel).
   final int cantidadFotos;
+
+  /// Links reales de las fotos (Cloudinary), en el orden en que se publicaron.
+  final List<String> imagenesUrls;
 
   /// Link de Google Maps para esta propiedad específica.
   final String mapsUrl;

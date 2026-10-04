@@ -497,6 +497,23 @@ class _TarjetaPropiedad extends StatelessWidget {
   final Propiedad propiedad;
   final VoidCallback onTap;
 
+  Widget _fondoDegradado() {
+    return Container(
+      height: 150,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            ColoresApp.azulNoche,
+            Color(0xFF1D4E70),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final temaDeTexto = Theme.of(context).textTheme;
@@ -519,20 +536,20 @@ class _TarjetaPropiedad extends StatelessWidget {
             children: [
               Stack(
                 children: [
-                  Container(
-                    height: 150,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          ColoresApp.azulNoche,
-                          ColoresApp.azulNocheClaro,
-                          ColoresApp.vino,
-                        ],
-                      ),
-                    ),
-                  ),
+                  if (p.imagenesUrls.isNotEmpty)
+                    Image.network(
+                      p.imagenesUrls.first,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progreso) {
+                        if (progreso == null) return child;
+                        return Container(height: 150, color: ColoresApp.tarjeta);
+                      },
+                      errorBuilder: (context, error, stack) => _fondoDegradado(),
+                    )
+                  else
+                    _fondoDegradado(),
                   Positioned(
                     top: 12,
                     left: 12,

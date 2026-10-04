@@ -1,5 +1,8 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'modelo_zona.dart';
+import 'servicio_imagenes.dart';
 import 'servicio_propiedades.dart';
 import 'servicio_zonas.dart';
 import 'sesion_usuario.dart';
@@ -30,11 +33,15 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
   final _controladorColonia = TextEditingController();
   final _controladorUbicacionMaps = TextEditingController();
   final _controladorCaracteristicas = TextEditingController();
-  final _controladorImagenes = TextEditingController();
+  final _servicioImagenes = ServicioImagenes();
 
   String _tipo = 'CASA';
   String _operacion = 'VENTA';
   int? _idZonaSeleccionada;
+
+  List<XFile> _fotosSeleccionadas = [];
+  bool _subiendoFotos = false;
+  int _fotosSubidas = 0;
 
   List<Zona> _zonas = [];
   bool _cargandoZonas = true;
@@ -60,7 +67,6 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
     _controladorColonia.dispose();
     _controladorUbicacionMaps.dispose();
     _controladorCaracteristicas.dispose();
-    _controladorImagenes.dispose();
     super.dispose();
   }
 
@@ -95,6 +101,16 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
     return null;
   }
 
+  Future<void> _elegirFotos() async {
+    final fotos = await _servicioImagenes.seleccionarFotos();
+    if (fotos.isEmpty) return;
+    setState(() => _fotosSeleccionadas = [..._fotosSeleccionadas, ...fotos]);
+  }
+
+  void _quitarFoto(int indice) {
+    setState(() => _fotosSeleccionadas = [..._fotosSeleccionadas]..removeAt(indice));
+  }
+
   Future<void> _publicar() async {
     setState(() => _errorPublicar = null);
 
@@ -119,11 +135,22 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
           .where((c) => c.isNotEmpty)
           .toList();
 
-      final imagenesUrls = _controladorImagenes.text
-          .split(',')
-          .map((u) => u.trim())
-          .where((u) => u.isNotEmpty)
-          .toList();
+      // Sube las fotos directo a Cloudinary antes de publicar la propiedad,
+      // para mandar los links ya listos.
+      List<String> imagenesUrls = [];
+      if (_fotosSeleccionadas.isNotEmpty) {
+        setState(() {
+          _subiendoFotos = true;
+          _fotosSubidas = 0;
+        });
+        imagenesUrls = await _servicioImagenes.subirFotos(
+          _fotosSeleccionadas,
+          onProgreso: (subidas, total) {
+            if (mounted) setState(() => _fotosSubidas = subidas);
+          },
+        );
+        if (mounted) setState(() => _subiendoFotos = false);
+      }
 
       await _servicioPropiedades.publicarPropiedad(
         idVendedor: usuario.id,
@@ -151,7 +178,12 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
       if (!mounted) return;
       setState(() => _errorPublicar = 'No se pudo publicar la propiedad. Intenta de nuevo.');
     } finally {
-      if (mounted) setState(() => _publicando = false);
+      if (mounted) {
+        setState(() {
+          _publicando = false;
+          _subiendoFotos = false;
+        });
+      }
     }
   }
 
@@ -286,16 +318,9 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                 ),
                 const SizedBox(height: 16),
 
-                Text('Fotos: pega aquí los links de Cloudinary (separados por coma)',
-                    style: temaDeTexto.bodyMedium),
+                Text('Fotos', style: temaDeTexto.bodyMedium),
                 const SizedBox(height: 6),
-                TextFormField(
-                  controller: _controladorImagenes,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'https://res.cloudinary.com/.../foto1.jpg, https://.../foto2.jpg',
-                  ),
-                ),
+                _buildSelectorFotos(),
                 const SizedBox(height: 24),
 
                 if (_errorPublicar != null) ...[
@@ -306,6 +331,14 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                   const SizedBox(height: 12),
                 ],
 
+                if (_subiendoFotos) ...[
+                  Text(
+                    'Subiendo fotos ($_fotosSubidas de ${_fotosSeleccionadas.length})...',
+                    style: temaDeTexto.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 ElevatedButton(
                   onPressed: _publicando ? null : _publicar,
                   child: _publicando
@@ -321,6 +354,29 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSelectorFotos() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_fotosSeleccionadas.isNotEmpty)
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (var i = 0; i < _fotosSeleccionadas.length; i++)
+                _MiniaturaFoto(foto: _fotosSeleccionadas[i], onQuitar: () => _quitarFoto(i)),
+            ],
+          ),
+        if (_fotosSeleccionadas.isNotEmpty) const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _subiendoFotos ? null : _elegirFotos,
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: Text(_fotosSeleccionadas.isEmpty ? 'Agregar fotos' : 'Agregar más fotos'),
+        ),
+      ],
     );
   }
 
@@ -406,6 +462,51 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
               value: valor,
               items: opciones.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
               onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Miniatura de una foto elegida de la galería, con botón para quitarla
+/// antes de publicar.
+class _MiniaturaFoto extends StatelessWidget {
+  const _MiniaturaFoto({required this.foto, required this.onQuitar});
+
+  final XFile foto;
+  final VoidCallback onQuitar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: FutureBuilder<Uint8List>(
+            future: foto.readAsBytes(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Container(
+                  width: 72,
+                  height: 72,
+                  color: ColoresApp.tarjeta,
+                );
+              }
+              return Image.memory(snapshot.data!, width: 72, height: 72, fit: BoxFit.cover);
+            },
+          ),
+        ),
+        Positioned(
+          top: -6,
+          right: -6,
+          child: GestureDetector(
+            onTap: onQuitar,
+            child: Container(
+              decoration: const BoxDecoration(color: Colors.black87, shape: BoxShape.circle),
+              padding: const EdgeInsets.all(2),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
             ),
           ),
         ),

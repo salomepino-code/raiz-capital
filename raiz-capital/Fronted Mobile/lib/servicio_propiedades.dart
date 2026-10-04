@@ -80,6 +80,10 @@ class ServicioPropiedades {
     final List<dynamic> caracteristicasJson =
         json['caracteristicas'] as List<dynamic>? ?? [];
     final List<dynamic> imagenesJson = json['imagenes'] as List<dynamic>? ?? [];
+    final List<String> imagenesUrls = imagenesJson
+        .map((img) => (img as Map<String, dynamic>)['url'] as String? ?? '')
+        .where((url) => url.isNotEmpty)
+        .toList();
 
     return Propiedad(
       operacion: operacion,
@@ -96,8 +100,9 @@ class ServicioPropiedades {
       descripcion: json['descripcion'] as String? ?? '',
       caracteristicas: caracteristicasJson.map((c) => c.toString()).toList(),
       // Si la propiedad todavía no tiene fotos cargadas, mostramos 1
-      // para que el carrusel no quede vacío.
-      cantidadFotos: imagenesJson.isNotEmpty ? imagenesJson.length : 1,
+      // para que el carrusel no quede vacío (usa el degradado de respaldo).
+      cantidadFotos: imagenesUrls.isNotEmpty ? imagenesUrls.length : 1,
+      imagenesUrls: imagenesUrls,
       mapsUrl: json['ubicacionMaps'] as String? ?? 'https://maps.google.com',
     );
   }
