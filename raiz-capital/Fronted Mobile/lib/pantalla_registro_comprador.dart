@@ -4,45 +4,57 @@ import 'servicio_usuarios.dart';
 import 'sesion_usuario.dart';
 import 'tema_app.dart';
 
-/// Pantalla de inicio de sesión.
-///
-/// NOTA: la cuenta de ADMINISTRADOR se crea manualmente, fuera del autoregistro
-/// El botón "Regístrate" de abajo es para el COMPRADOR, que puede crear una
-/// cuenta opcional si quiere guardar reseñas o favoritos — no es
-/// obligatorio para navegar el catálogo.
-
-class PantallaInicioSesion extends StatefulWidget {
-  const PantallaInicioSesion({super.key});
+class PantallaRegistroComprador extends StatefulWidget {
+  const PantallaRegistroComprador({super.key});
 
   @override
-  State<PantallaInicioSesion> createState() => _EstadoPantallaInicioSesion();
+  State<PantallaRegistroComprador> createState() =>
+      _EstadoPantallaRegistroComprador();
 }
 
-class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
+class _EstadoPantallaRegistroComprador
+    extends State<PantallaRegistroComprador> {
   final _llaveFormulario = GlobalKey<FormState>();
+
+  final _controladorNombre = TextEditingController();
   final _controladorCorreo = TextEditingController();
   final _controladorContrasena = TextEditingController();
+  final _controladorConfirmarContrasena = TextEditingController();
+
   final _servicioUsuarios = ServicioUsuarios();
 
   bool _ocultarContrasena = true;
+  bool _ocultarConfirmarContrasena = true;
   bool _cargando = false;
-  String? _errorInicioSesion;
+  String? _errorRegistro;
 
   @override
   void dispose() {
+    _controladorNombre.dispose();
     _controladorCorreo.dispose();
     _controladorContrasena.dispose();
+    _controladorConfirmarContrasena.dispose();
     super.dispose();
+  }
+
+  String? _validarNombre(String? valor) {
+    if (valor == null || valor.trim().isEmpty) {
+      return 'Ingresa tu nombre';
+    }
+    return null;
   }
 
   String? _validarCorreo(String? valor) {
     if (valor == null || valor.trim().isEmpty) {
       return 'Ingresa tu correo electrónico';
     }
+
     final patronCorreo = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
     if (!patronCorreo.hasMatch(valor.trim())) {
       return 'Ingresa un correo válido';
     }
+
     return null;
   }
 
@@ -50,14 +62,28 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
     if (valor == null || valor.isEmpty) {
       return 'Ingresa tu contraseña';
     }
+
     if (valor.length < 8) {
       return 'Debe tener al menos 8 caracteres';
     }
+
     return null;
   }
 
-  Future<void> _manejarInicioSesion() async {
-    setState(() => _errorInicioSesion = null);
+  String? _validarConfirmarContrasena(String? valor) {
+    if (valor == null || valor.isEmpty) {
+      return 'Confirma tu contraseña';
+    }
+
+    if (valor != _controladorContrasena.text) {
+      return 'Las contraseñas no coinciden';
+    }
+
+    return null;
+  }
+
+  Future<void> _manejarRegistro() async {
+    setState(() => _errorRegistro = null);
 
     if (!_llaveFormulario.currentState!.validate()) {
       return;
@@ -66,26 +92,31 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
     setState(() => _cargando = true);
 
     try {
-      final usuario = await _servicioUsuarios.iniciarSesion(
+      final usuario = await _servicioUsuarios.registrarComprador(
+        _controladorNombre.text.trim(),
         _controladorCorreo.text.trim(),
         _controladorContrasena.text,
       );
 
       if (!mounted) return;
-      setState(() => _cargando = false);
-
-      if (usuario == null) {
-        setState(() => _errorInicioSesion = 'Correo o contraseña incorrectos.');
-        return;
-      }
 
       SesionUsuario.actual = usuario;
-      Navigator.of(context).pop(); // regresa al catálogo, que ya se refresca solo
+
+      setState(() => _cargando = false);
+
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         _cargando = false;
-        _errorInicioSesion = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+
+        if (e.toString().contains('CORREO_DUPLICADO')) {
+          _errorRegistro = 'Este correo ya está registrado.';
+        } else {
+          _errorRegistro =
+              'No pudimos crear tu cuenta. Intenta de nuevo.';
+        }
       });
     }
   }
@@ -97,118 +128,179 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 28,
+            vertical: 24,
+          ),
           child: Form(
             key: _llaveFormulario,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 32),
-                _Marca(temaDeTexto: temaDeTexto),
-                const SizedBox(height: 40),
-                Text('Correo electrónico', style: temaDeTexto.bodyMedium),
+
+                const LogoRaizCapital(altura: 64),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  'Crear cuenta',
+                  style: temaDeTexto.displayLarge,
+                  textAlign: TextAlign.center,
+                ),
+
                 const SizedBox(height: 6),
+
+                Text(
+                  'Regístrate para guardar tus favoritos',
+                  style: temaDeTexto.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 40),
+
+                Text(
+                  'Nombre',
+                  style: temaDeTexto.bodyMedium,
+                ),
+
+                const SizedBox(height: 6),
+
+                TextFormField(
+                  controller: _controladorNombre,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    hintText: 'Tu nombre',
+                  ),
+                  validator: _validarNombre,
+                ),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  'Correo electrónico',
+                  style: temaDeTexto.bodyMedium,
+                ),
+
+                const SizedBox(height: 6),
+
                 TextFormField(
                   controller: _controladorCorreo,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
-                  decoration: const InputDecoration(hintText: 'tucorreo@ejemplo.com'),
+                  decoration: const InputDecoration(
+                    hintText: 'tucorreo@ejemplo.com',
+                  ),
                   validator: _validarCorreo,
                 ),
+
                 const SizedBox(height: 20),
-                Text('Contraseña', style: temaDeTexto.bodyMedium),
+
+                Text(
+                  'Contraseña',
+                  style: temaDeTexto.bodyMedium,
+                ),
+
                 const SizedBox(height: 6),
+
                 TextFormField(
                   controller: _controladorContrasena,
                   obscureText: _ocultarContrasena,
-                  textInputAction: TextInputAction.done,
+                  textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.password],
-                  onFieldSubmitted: (_) => _manejarInicioSesion(),
                   decoration: InputDecoration(
                     hintText: 'Mínimo 8 caracteres',
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _ocultarContrasena ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        _ocultarContrasena
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         color: ColoresApp.textoApagado,
                       ),
-                      onPressed: () => setState(() => _ocultarContrasena = !_ocultarContrasena),
+                      onPressed: () {
+                        setState(() {
+                          _ocultarContrasena = !_ocultarContrasena;
+                        });
+                      },
                     ),
                   ),
                   validator: _validarContrasena,
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // aqui va la navegacion al flujo de recuperacion de contraseña (RF11)
-                    },
-                    child: const Text('¿Olvidaste tu contraseña?'),
-                  ),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  'Confirmar contraseña',
+                  style: temaDeTexto.bodyMedium,
                 ),
-                if (_errorInicioSesion != null) ...[
-                  const SizedBox(height: 4),
+
+                const SizedBox(height: 6),
+
+                TextFormField(
+                  controller: _controladorConfirmarContrasena,
+                  obscureText: _ocultarConfirmarContrasena,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _manejarRegistro(),
+                  decoration: InputDecoration(
+                    hintText: 'Repite tu contraseña',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _ocultarConfirmarContrasena
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: ColoresApp.textoApagado,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _ocultarConfirmarContrasena =
+                              !_ocultarConfirmarContrasena;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: _validarConfirmarContrasena,
+                ),
+
+                if (_errorRegistro != null) ...[
+                  const SizedBox(height: 16),
                   Text(
-                    _errorInicioSesion!,
-                    style: temaDeTexto.bodyMedium?.copyWith(color: ColoresApp.error),
+                    _errorRegistro!,
+                    style: temaDeTexto.bodyMedium?.copyWith(
+                      color: ColoresApp.error,
+                    ),
                   ),
                 ],
-                const SizedBox(height: 12),
+
+                const SizedBox(height: 24),
+
                 ElevatedButton(
-                  onPressed: _cargando ? null : _manejarInicioSesion,
+                  onPressed: _cargando ? null : _manejarRegistro,
                   child: _cargando
                       ? const SizedBox(
                           height: 22,
                           width: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Text('Iniciar sesión'),
+                      : const Text('Crear cuenta'),
                 ),
-                const SizedBox(height: 28),
-                // Registro opcional PARA EL COMPRADOR (no para administrador).
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('¿No tienes cuenta?', style: temaDeTexto.bodyMedium),
-                    TextButton(
-                      onPressed: () {
-                        // aqui va la navegacion a la pantalla de registro de COMPRADOR (RF01)
-                        // (opcional: guardar reseñas o favoritos). El administrador
-                        // no se registra aquí, su cuenta se crea manualmente.
-                      },
-                      child: const Text('Regístrate'),
-                    ),
-                  ],
+
+                const SizedBox(height: 20),
+
+                TextButton(
+                  onPressed: _cargando
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  child: const Text('Ya tengo una cuenta'),
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Encabezado de marca: logo/wordmark en Fraunces + tagline en Inter.
-class _Marca extends StatelessWidget {
-  const _Marca({required this.temaDeTexto});
-
-  final TextTheme temaDeTexto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const LogoRaizCapital(altura: 64),
-        const SizedBox(height: 20),
-        Text('Raíz Capital', style: temaDeTexto.displayLarge, textAlign: TextAlign.center),
-        const SizedBox(height: 6),
-        Text(
-          'Encuentra tu próxima propiedad',
-          style: temaDeTexto.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 }
