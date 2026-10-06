@@ -1,3 +1,4 @@
+import 'pantalla_registro_comprador.dart';
 import 'package:flutter/material.dart';
 import 'logo_raiz_capital.dart';
 import 'servicio_usuarios.dart';
@@ -170,14 +171,16 @@ class _EstadoPantallaInicioSesion extends State<PantallaInicioSesion> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('¿No tienes cuenta?', style: temaDeTexto.bodyMedium),
-                    TextButton(
-                      onPressed: () {
-                        // aqui va la navegacion a la pantalla de registro de COMPRADOR (RF01)
-                        // (opcional: guardar reseñas o favoritos). El administrador
-                        // no se registra aquí, su cuenta se crea manualmente.
-                      },
-                      child: const Text('Regístrate'),
-                    ),
+                   TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PantallaRegistroComprador(),
+                          ),
+                          );
+                          },
+                          child: const Text('Regístrate'),
+                          ),
                   ],
                 ),
               ],
