@@ -7,6 +7,7 @@ import 'pantalla_inicio_sesion.dart';
 import 'pantalla_publicar_propiedad.dart';
 import 'servicio_propiedades.dart';
 import 'sesion_usuario.dart';
+import 'tarjeta_busqueda.dart';
 import 'tema_app.dart';
 
 /// Pantalla de catálogo — puerta de entrada de la app
@@ -14,29 +15,6 @@ import 'tema_app.dart';
 /// El ícono de perfil lleva al login, que es secundario y opcional.
 /// Estructura calcada del index.html de la web
 
-const List<String> _tiposDisponibles = ['Todos', 'Casa', 'Departamento', 'Terreno', 'Local'];
-const List<String> _operacionesDisponibles = ['Todas', 'Venta', 'Renta'];
-
-// Mismos rangos que RANGOS_PRECIO en script.js (la web)
-const Map<String, List<Map<String, String>>> _rangosPrecio = {
-  'VENTA': [
-    {'value': '2000000', 'label': 'Hasta \$2,000,000'},
-    {'value': '4000000', 'label': 'Hasta \$4,000,000'},
-    {'value': '6000000', 'label': 'Hasta \$6,000,000'},
-    {'value': '8000000', 'label': 'Hasta \$8,000,000'},
-    {'value': '10000000', 'label': 'Hasta \$10,000,000'},
-    {'value': '15000000', 'label': 'Hasta \$15,000,000'},
-  ],
-  'RENTA': [
-    {'value': '10000', 'label': 'Hasta \$10,000'},
-    {'value': '15000', 'label': 'Hasta \$15,000'},
-    {'value': '20000', 'label': 'Hasta \$20,000'},
-    {'value': '25000', 'label': 'Hasta \$25,000'},
-    {'value': '30000', 'label': 'Hasta \$30,000'},
-    {'value': '40000', 'label': 'Hasta \$40,000'},
-    {'value': '50000', 'label': 'Hasta \$50,000'},
-  ],
-};
 
 class PantallaCatalogo extends StatefulWidget {
   const PantallaCatalogo({super.key});
@@ -179,7 +157,7 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
             const SizedBox(height: 24),
 
             // ===== BUSCADOR / FILTROS =====
-            _TarjetaBusqueda(
+            TarjetaBusqueda(
               tipoSeleccionado: _tipoSeleccionado,
               operacionSeleccionada: _operacionSeleccionada,
               controladorZona: _controladorZona,
@@ -261,230 +239,6 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
           ),
           const SizedBox(height: 18),
         ],
-      ],
-    );
-  }
-}
-
-/// Tarjeta de búsqueda con filtros reales, conectados al estado de la pantalla.
-class _TarjetaBusqueda extends StatelessWidget {
-  const _TarjetaBusqueda({
-    required this.tipoSeleccionado,
-    required this.operacionSeleccionada,
-    required this.controladorZona,
-    required this.precioMaxSeleccionado,
-    required this.onTipoChanged,
-    required this.onOperacionChanged,
-    required this.onPrecioMaxChanged,
-    required this.onBuscar,
-  });
-
-  final String tipoSeleccionado;
-  final String operacionSeleccionada;
-  final TextEditingController controladorZona;
-  final String? precioMaxSeleccionado;
-  final ValueChanged<String> onTipoChanged;
-  final ValueChanged<String> onOperacionChanged;
-  final ValueChanged<String?> onPrecioMaxChanged;
-  final VoidCallback onBuscar;
-
-  @override
-  Widget build(BuildContext context) {
-    final opcionesPrecio = _rangosPrecio[operacionSeleccionada.toUpperCase()] ?? [];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: ColoresApp.tarjeta,
-        borderRadius: BorderRadius.circular(TemaApp.radio),
-        border: Border.all(color: ColoresApp.borde),
-        boxShadow: [
-          BoxShadow(
-            color: ColoresApp.azulNoche.withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _CampoFiltroDropdown(
-                  etiqueta: 'TIPO',
-                  valor: tipoSeleccionado,
-                  opciones: _tiposDisponibles,
-                  onChanged: (v) => onTipoChanged(v ?? 'Todos'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _CampoFiltroDropdown(
-                  etiqueta: 'OPERACIÓN',
-                  valor: operacionSeleccionada,
-                  opciones: _operacionesDisponibles,
-                  onChanged: (v) => onOperacionChanged(v ?? 'Todas'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _CampoFiltroTexto(
-                  etiqueta: 'ZONA',
-                  controlador: controladorZona,
-                  placeholder: 'Buscar zona...',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _CampoFiltroDropdown(
-                  etiqueta: 'PRECIO MÁX.',
-                  valor: precioMaxSeleccionado,
-                  opciones: opcionesPrecio.map((r) => r['value']!).toList(),
-                  etiquetasOpciones: {for (final r in opcionesPrecio) r['value']!: r['label']!},
-                  valorMostrado: precioMaxSeleccionado == null
-                      ? 'Sin límite'
-                      : (opcionesPrecio.firstWhere((r) => r['value'] == precioMaxSeleccionado)['label']),
-                  onChanged: onPrecioMaxChanged,
-                  incluirOpcionVacia: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          ElevatedButton(
-            onPressed: onBuscar,
-            child: const Text('Buscar propiedades'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Campo de filtro tipo dropdown, con el mismo look que el diseño original
-/// (_CampoFiltro), pero funcional.
-class _CampoFiltroDropdown extends StatelessWidget {
-  const _CampoFiltroDropdown({
-    required this.etiqueta,
-    required this.valor,
-    required this.opciones,
-    required this.onChanged,
-    this.etiquetasOpciones,
-    this.valorMostrado,
-    this.incluirOpcionVacia = false,
-  });
-
-  final String etiqueta;
-  final String? valor;
-  final List<String> opciones;
-  final ValueChanged<String?> onChanged;
-  final Map<String, String>? etiquetasOpciones;
-  final String? valorMostrado;
-  final bool incluirOpcionVacia;
-
-  @override
-  Widget build(BuildContext context) {
-    final temaDeTexto = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          etiqueta,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: ColoresApp.textoApagado,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          decoration: BoxDecoration(
-            color: ColoresApp.crema,
-            borderRadius: BorderRadius.circular(TemaApp.radio),
-            border: Border.all(color: ColoresApp.borde),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String?>(
-              isExpanded: true,
-              value: valor,
-              icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: ColoresApp.textoApagado),
-              style: temaDeTexto.bodyMedium,
-              items: [
-                if (incluirOpcionVacia)
-                  const DropdownMenuItem<String?>(value: null, child: Text('Sin límite')),
-                ...opciones.map(
-                  (o) => DropdownMenuItem<String?>(
-                    value: o,
-                    child: Text(
-                      etiquetasOpciones != null ? etiquetasOpciones![o] ?? o : o,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ],
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Campo de filtro de texto libre (usado para Zona), mismo look que el diseño original.
-class _CampoFiltroTexto extends StatelessWidget {
-  const _CampoFiltroTexto({
-    required this.etiqueta,
-    required this.controlador,
-    required this.placeholder,
-  });
-
-  final String etiqueta;
-  final TextEditingController controlador;
-  final String placeholder;
-
-  @override
-  Widget build(BuildContext context) {
-    final temaDeTexto = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          etiqueta,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: ColoresApp.textoApagado,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: ColoresApp.crema,
-            borderRadius: BorderRadius.circular(TemaApp.radio),
-            border: Border.all(color: ColoresApp.borde),
-          ),
-          child: TextField(
-            controller: controlador,
-            style: temaDeTexto.bodyMedium,
-            decoration: InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              hintText: placeholder,
-              hintStyle: temaDeTexto.bodyMedium?.copyWith(color: ColoresApp.textoApagado),
-            ),
-          ),
-        ),
       ],
     );
   }

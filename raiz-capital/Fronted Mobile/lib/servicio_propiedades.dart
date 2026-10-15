@@ -77,6 +77,10 @@ class ServicioPropiedades {
     final zona = json['zona'] as Map<String, dynamic>?;
     final String ciudad = zona?['ciudad'] as String? ?? '';
     final String nombreZona = zona?['nombreZona'] as String? ?? '';
+    // El vendedor dueño de la exclusiva viene anidado en la propiedad;
+    // su teléfono se usa para el botón de WhatsApp.
+    final vendedor = json['vendedor'] as Map<String, dynamic>?;
+    final String? telefonoVendedor = vendedor?['telefono'] as String?;
     final List<dynamic> caracteristicasJson =
         json['caracteristicas'] as List<dynamic>? ?? [];
     final List<dynamic> imagenesJson = json['imagenes'] as List<dynamic>? ?? [];
@@ -104,6 +108,7 @@ class ServicioPropiedades {
       cantidadFotos: imagenesUrls.isNotEmpty ? imagenesUrls.length : 1,
       imagenesUrls: imagenesUrls,
       mapsUrl: json['ubicacionMaps'] as String? ?? 'https://maps.google.com',
+      telefonoVendedor: telefonoVendedor,
     );
   }
 

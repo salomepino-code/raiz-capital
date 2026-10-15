@@ -306,8 +306,24 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                 const SizedBox(height: 16),
 
                 Text('Link de Google Maps (opcional)', style: temaDeTexto.bodyMedium),
+                const SizedBox(height: 2),
+                Text(
+                  'En Google Maps: busca la dirección → Compartir → Copiar vínculo',
+                  style: temaDeTexto.bodyMedium?.copyWith(fontSize: 12),
+                ),
                 const SizedBox(height: 6),
-                TextFormField(controller: _controladorUbicacionMaps),
+                TextFormField(
+                  controller: _controladorUbicacionMaps,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(hintText: 'https://maps.app.goo.gl/...'),
+                  validator: (valor) {
+                    final texto = (valor ?? '').trim();
+                    if (texto.isEmpty) return null; // es opcional
+                    final uri = Uri.tryParse(texto);
+                    final esWeb = uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+                    return esWeb ? null : 'Pega el link completo (empieza con https://)';
+                  },
+                ),
                 const SizedBox(height: 16),
 
                 Text('Características (separadas por coma)', style: temaDeTexto.bodyMedium),

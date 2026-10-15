@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'modelo_propiedad.dart';
 import 'tema_app.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Ficha de detalle de una propiedad (caso de uso "Consultar propiedad").
 /// Se navega aquí al tocar una tarjeta del catálogo.
@@ -41,10 +42,56 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
     );
   }
 
+  /// Abre un link fuera de la app: en Chrome se abre en una pestaña nueva
+  /// y en un celular abre la app de Maps/WhatsApp si está instalada.
+  Future<void> _abrirEnlace(String url) async {
+    var abierto = false;
+    try {
+      final uri = Uri.tryParse(url);
+      if (uri != null) {
+        abierto = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      abierto = false;
+    }
+
+    if (!abierto && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
+    }
+  }
+
+    /// Arma el link de WhatsApp (wa.me) con el teléfono del vendedor de esta
+  /// propiedad y un mensaje ya escrito. Devuelve null si no hay teléfono.
+  String? _linkWhatsApp(Propiedad p) {
+    final telefono = p.telefonoVendedor;
+    if (telefono == null) return null;
+
+    var numero = telefono.replaceAll(RegExp(r'\D'), ''); // solo dígitos
+    if (numero.isEmpty) return null;
+    // Números de 10 dígitos (ej. 6641234567): se asume México (+52).
+    if (numero.length == 10) numero = '52$numero';
+
+    final mensaje =
+        'Hola, me interesa la propiedad "${p.titulo}" (${p.precio}). ¿Sigue disponible?';
+    return 'https://wa.me/$numero?text=${Uri.encodeComponent(mensaje)}';
+  }
+
+  /// El mapper usa 'https://maps.google.com' como valor por defecto cuando
+  /// la propiedad no trae link propio; eso no ubica la propiedad, así que
+  /// se trata como "sin link". Si cambiaste ese valor en
+  /// servicio_propiedades.dart, ajusta esta comparación.
+  bool _tieneLinkDeMapa(Propiedad p) {
+    final link = p.mapsUrl.trim();
+    return link.isNotEmpty && link != 'https://maps.google.com';
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = widget.propiedad;
     final temaDeTexto = Theme.of(context).textTheme;
+    final linkWhatsApp = _linkWhatsApp(p);
 
     return Scaffold(
       backgroundColor: ColoresApp.crema,
@@ -143,7 +190,7 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
           ),
           const SizedBox(height: 16),
 
-          // ===== Ubicación =====
+                    // ===== Ubicación =====
           _Caja(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,31 +200,35 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
                   style: temaDeTexto.headlineSmall?.copyWith(fontSize: 17),
                 ),
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // aqui va la conexion con la base de datos: por ahora
-                    // p.mapsUrl es un link genérico; cuando exista el backend
-                    // vendrá uno específico por propiedad. Falta agregar el
-                    // paquete url_launcher al pubspec.yaml para poder abrir
-                    // este link (ver nota debajo del código).
-                  },
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Ver en Google Maps'),
-                ),
+                if (_tieneLinkDeMapa(p))
+                  OutlinedButton.icon(
+                    onPressed: () => _abrirEnlace(p.mapsUrl),
+                    icon: const Icon(Icons.map_outlined),
+                    label: const Text('Ver en Google Maps'),
+                  )
+                else
+                  Text(
+                    'Esta propiedad todavía no tiene ubicación en el mapa.',
+                    style: temaDeTexto.bodyMedium,
+                  ),
               ],
             ),
           ),
+          
           const SizedBox(height: 24),
 
           // ===== Contacto =====
-          ElevatedButton(
-            onPressed: () {
-              // aqui va la conexion con la base de datos: el número real
-              // del vendedor de ESTA propiedad (RF05). También requiere
-              // url_launcher para abrir WhatsApp.
-            },
-            child: const Text('Consultar por WhatsApp'),
-          ),
+          if (linkWhatsApp != null)
+            ElevatedButton(
+              onPressed: () => _abrirEnlace(linkWhatsApp),
+              child: const Text('Consultar por WhatsApp'),
+            )
+          else
+            Text(
+              'Esta propiedad todavía no tiene un número de contacto registrado.',
+              style: temaDeTexto.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
         ],
       ),
     );

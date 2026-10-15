@@ -1,9 +1,5 @@
 -- =====================================================
--- Raíz Capital — Esquema MySQL (v2)
--- Cambios vs v1: ENUMs en MAYÚSCULAS (para coincidir con Java)
--- e Imagen/Reseña con id autoincremental simple.
--- OJO: este script BORRA la base raiz_capital y la recrea.
--- Úsalo ahora que está vacía; después ya no lo corras así.
+-- Raíz Capital  
 -- =====================================================
 
 DROP DATABASE IF EXISTS raiz_capital;

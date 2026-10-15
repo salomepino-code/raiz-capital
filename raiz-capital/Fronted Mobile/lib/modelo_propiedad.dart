@@ -17,6 +17,7 @@ class Propiedad {
     required this.cantidadFotos,
     required this.imagenesUrls,
     required this.mapsUrl,
+    this.telefonoVendedor,
   });
 
   final String operacion;
@@ -52,4 +53,8 @@ class Propiedad {
 
   /// Link de Google Maps para esta propiedad específica.
   final String mapsUrl;
+
+  /// Teléfono del vendedor con la exclusiva de esta propiedad (para WhatsApp).
+  /// Null si el vendedor no registró teléfono.
+  final String? telefonoVendedor;
 }
