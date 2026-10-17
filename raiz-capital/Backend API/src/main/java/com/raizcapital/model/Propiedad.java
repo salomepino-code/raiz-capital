@@ -1,6 +1,9 @@
 package com.raizcapital.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -18,6 +21,7 @@ public class Propiedad {
 
     @ManyToOne
     @JoinColumn(name = "id_vendedor", nullable = false)
+    @JsonIgnoreProperties({"correo", "rol"}) // el catálogo es público: no exponer el correo del vendedor
     private Usuario vendedor; // relación "Publica"
 
     @ManyToOne
