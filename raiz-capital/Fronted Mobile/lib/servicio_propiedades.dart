@@ -47,28 +47,145 @@ class ServicioPropiedades {
     final respuesta = await http.post(
       Uri.parse('$_urlBase/api/propiedades'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'idVendedor': idVendedor,
-        'idZona': idZona,
-        'titulo': titulo,
-        'descripcion': descripcion,
-        'precio': precio,
-        'tipo': tipo,
-        'operacion': operacion,
-        'recamaras': recamaras,
-        'banos': banos,
-        'superficieM2': superficieM2,
-        'calle': calle,
-        'colonia': colonia,
-        'ubicacionMaps': ubicacionMaps,
-        'caracteristicas': caracteristicas,
-        'imagenesUrls': imagenesUrls,
-      }),
+      body: jsonEncode(
+        _armarCuerpo(
+          idVendedor: idVendedor,
+          idZona: idZona,
+          titulo: titulo,
+          descripcion: descripcion,
+          precio: precio,
+          tipo: tipo,
+          operacion: operacion,
+          recamaras: recamaras,
+          banos: banos,
+          superficieM2: superficieM2,
+          calle: calle,
+          colonia: colonia,
+          ubicacionMaps: ubicacionMaps,
+          caracteristicas: caracteristicas,
+          imagenesUrls: imagenesUrls,
+        ),
+      ),
     );
 
     if (respuesta.statusCode != 200) {
       throw Exception('No se pudo publicar la propiedad (código ${respuesta.statusCode})');
     }
+  }
+
+  /// Edita una propiedad (PUT /api/propiedades/{id}). Solo administrador:
+  /// idAdmin viaja en el header X-Usuario-Id y el backend comprueba que
+  /// ese usuario exista y tenga rol ADMINISTRADOR.
+  ///
+  /// No se manda idVendedor: la propiedad conserva a su vendedor.
+  /// imagenesUrls debe traer TODAS las fotos que deben quedar (las que ya
+  /// tenía y no se quitaron + las nuevas), en el orden en que se muestran.
+  Future<void> actualizarPropiedad({
+    required int id,
+    required int idAdmin,
+    required int idZona,
+    required String titulo,
+    required String descripcion,
+    required num precio,
+    required String tipo,
+    required String operacion,
+    required int recamaras,
+    required int banos,
+    required num superficieM2,
+    String? calle,
+    String? colonia,
+    String? ubicacionMaps,
+    List<String> caracteristicas = const [],
+    List<String> imagenesUrls = const [],
+  }) async {
+    final respuesta = await http.put(
+      Uri.parse('$_urlBase/api/propiedades/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Usuario-Id': '$idAdmin',
+      },
+      body: jsonEncode(
+        _armarCuerpo(
+          idZona: idZona,
+          titulo: titulo,
+          descripcion: descripcion,
+          precio: precio,
+          tipo: tipo,
+          operacion: operacion,
+          recamaras: recamaras,
+          banos: banos,
+          superficieM2: superficieM2,
+          calle: calle,
+          colonia: colonia,
+          ubicacionMaps: ubicacionMaps,
+          caracteristicas: caracteristicas,
+          imagenesUrls: imagenesUrls,
+        ),
+      ),
+    );
+
+    if (respuesta.statusCode == 403) {
+      throw Exception('Solo un administrador puede editar propiedades.');
+    }
+    if (respuesta.statusCode != 200) {
+      throw Exception('No se pudo guardar la propiedad (código ${respuesta.statusCode})');
+    }
+  }
+
+  /// Elimina una propiedad (DELETE /api/propiedades/{id}). Solo administrador.
+  Future<void> eliminarPropiedad({
+    required int id,
+    required int idAdmin,
+  }) async {
+    final respuesta = await http.delete(
+      Uri.parse('$_urlBase/api/propiedades/$id'),
+      headers: {'X-Usuario-Id': '$idAdmin'},
+    );
+
+    if (respuesta.statusCode == 403) {
+      throw Exception('Solo un administrador puede eliminar propiedades.');
+    }
+    if (respuesta.statusCode != 200 && respuesta.statusCode != 204) {
+      throw Exception('No se pudo eliminar la propiedad (código ${respuesta.statusCode})');
+    }
+  }
+
+  /// Cuerpo JSON que entiende PropiedadRequest en el backend. idVendedor es
+  /// opcional: al publicar se manda; al editar no.
+  Map<String, dynamic> _armarCuerpo({
+    int? idVendedor,
+    required int idZona,
+    required String titulo,
+    required String descripcion,
+    required num precio,
+    required String tipo,
+    required String operacion,
+    required int recamaras,
+    required int banos,
+    required num superficieM2,
+    String? calle,
+    String? colonia,
+    String? ubicacionMaps,
+    required List<String> caracteristicas,
+    required List<String> imagenesUrls,
+  }) {
+    return {
+      if (idVendedor != null) 'idVendedor': idVendedor,
+      'idZona': idZona,
+      'titulo': titulo,
+      'descripcion': descripcion,
+      'precio': precio,
+      'tipo': tipo,
+      'operacion': operacion,
+      'recamaras': recamaras,
+      'banos': banos,
+      'superficieM2': superficieM2,
+      'calle': calle,
+      'colonia': colonia,
+      'ubicacionMaps': ubicacionMaps,
+      'caracteristicas': caracteristicas,
+      'imagenesUrls': imagenesUrls,
+    };
   }
 
   Propiedad _mapearPropiedad(Map<String, dynamic> json) {
@@ -90,6 +207,12 @@ class ServicioPropiedades {
         .toList();
 
     return Propiedad(
+      id: (json['id'] as num?)?.toInt(),
+      idZona: (zona?['id'] as num?)?.toInt(),
+      calle: json['calle'] as String?,
+      colonia: json['colonia'] as String?,
+      superficieM2: json['superficieM2'] as num?,
+      ubicacionMapsOriginal: json['ubicacionMaps'] as String?,
       operacion: operacion,
       precio: _formatearPrecio(precio, operacion),
       precioNumerico: precio,

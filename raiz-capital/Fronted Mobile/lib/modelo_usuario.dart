@@ -22,4 +22,5 @@ class Usuario {
   }
 
   bool get puedePublicar => rol == 'VENDEDOR' || rol == 'ADMINISTRADOR';
+  bool get esAdministrador => rol == 'ADMINISTRADOR';
 }

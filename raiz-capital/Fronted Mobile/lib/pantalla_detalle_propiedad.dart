@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import 'modelo_propiedad.dart';
-import 'tema_app.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'modelo_propiedad.dart';
+import 'pantalla_publicar_propiedad.dart';
+import 'servicio_propiedades.dart';
+import 'sesion_usuario.dart';
+import 'tema_app.dart';
 
 /// Ficha de detalle de una propiedad (caso de uso "Consultar propiedad").
 /// Se navega aquí al tocar una tarjeta del catálogo.
 ///
-/// Estructura calcada del boceto: carrusel de fotos con flechas arriba,
-/// specs (habitaciones/baños/m²/precio) a un lado, descripción y
-/// características abajo, y ubicación al final.
+/// Si quien la ve es administrador, abajo aparecen los botones para editar
+/// o eliminar la propiedad. Cuando se edita o se elimina, esta pantalla
+/// regresa true al catálogo para que recargue la lista.
 class PantallaDetallePropiedad extends StatefulWidget {
   const PantallaDetallePropiedad({super.key, required this.propiedad});
 
@@ -20,7 +23,9 @@ class PantallaDetallePropiedad extends StatefulWidget {
 
 class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
   late final PageController _controladorCarrusel;
+  final _servicioPropiedades = ServicioPropiedades();
   int _fotoActual = 0;
+  bool _eliminando = false;
 
   @override
   void initState() {
@@ -62,7 +67,16 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
     }
   }
 
-    /// Arma el link de WhatsApp (wa.me) con el teléfono del vendedor de esta
+  /// El mapper usa 'https://maps.google.com' como valor por defecto cuando
+  /// la propiedad no trae link propio; eso no ubica la propiedad, así que
+  /// se trata como "sin link". Si cambiaste ese valor en
+  /// servicio_propiedades.dart, ajusta esta comparación.
+  bool _tieneLinkDeMapa(Propiedad p) {
+    final link = p.mapsUrl.trim();
+    return link.isNotEmpty && link != 'https://maps.google.com';
+  }
+
+  /// Arma el link de WhatsApp (wa.me) con el teléfono del vendedor de esta
   /// propiedad y un mensaje ya escrito. Devuelve null si no hay teléfono.
   String? _linkWhatsApp(Propiedad p) {
     final telefono = p.telefonoVendedor;
@@ -78,13 +92,61 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
     return 'https://wa.me/$numero?text=${Uri.encodeComponent(mensaje)}';
   }
 
-  /// El mapper usa 'https://maps.google.com' como valor por defecto cuando
-  /// la propiedad no trae link propio; eso no ubica la propiedad, así que
-  /// se trata como "sin link". Si cambiaste ese valor en
-  /// servicio_propiedades.dart, ajusta esta comparación.
-  bool _tieneLinkDeMapa(Propiedad p) {
-    final link = p.mapsUrl.trim();
-    return link.isNotEmpty && link != 'https://maps.google.com';
+  /// Solo el administrador ve los botones de editar y eliminar.
+  bool get _esAdmin => SesionUsuario.haySesion && SesionUsuario.actual!.esAdministrador;
+
+  Future<void> _editar() async {
+    final seGuardo = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PantallaPublicarPropiedad(propiedadAEditar: widget.propiedad),
+      ),
+    );
+
+    // Esta ficha ya quedó con datos viejos: se regresa al catálogo, que recarga.
+    if (seGuardo == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _eliminar() async {
+    final p = widget.propiedad;
+    final admin = SesionUsuario.actual;
+    final id = p.id;
+    if (admin == null || id == null) return;
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar propiedad'),
+        content: Text(
+          '¿Seguro que quieres eliminar "${p.titulo}"? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Eliminar', style: TextStyle(color: ColoresApp.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+
+    setState(() => _eliminando = true);
+    try {
+      await _servicioPropiedades.eliminarPropiedad(id: id, idAdmin: admin.id);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _eliminando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo eliminar la propiedad.')),
+      );
+    }
   }
 
   @override
@@ -190,7 +252,7 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
           ),
           const SizedBox(height: 16),
 
-                    // ===== Ubicación =====
+          // ===== Ubicación =====
           _Caja(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +276,6 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
               ],
             ),
           ),
-          
           const SizedBox(height: 24),
 
           // ===== Contacto =====
@@ -229,6 +290,28 @@ class _EstadoPantallaDetallePropiedad extends State<PantallaDetallePropiedad> {
               style: temaDeTexto.bodyMedium,
               textAlign: TextAlign.center,
             ),
+
+          // ===== Solo administrador =====
+          if (_esAdmin) ...[
+            const SizedBox(height: 28),
+            const Divider(color: ColoresApp.borde),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _eliminando ? null : _editar,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Editar propiedad'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _eliminando ? null : _eliminar,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColoresApp.error,
+                side: const BorderSide(color: ColoresApp.error),
+              ),
+              icon: const Icon(Icons.delete_outline),
+              label: Text(_eliminando ? 'Eliminando...' : 'Eliminar propiedad'),
+            ),
+          ],
         ],
       ),
     );

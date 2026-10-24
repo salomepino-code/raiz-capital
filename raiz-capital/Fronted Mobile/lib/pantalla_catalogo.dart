@@ -8,6 +8,7 @@ import 'pantalla_publicar_propiedad.dart';
 import 'servicio_propiedades.dart';
 import 'sesion_usuario.dart';
 import 'tarjeta_busqueda.dart';
+import 'pantalla_gestionar_vendedores.dart';
 import 'tema_app.dart';
 
 /// Pantalla de catálogo — puerta de entrada de la app
@@ -99,6 +100,20 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
         titleSpacing: 20,
         title: const LogoRaizCapital(altura: 60),
         actions: [
+          if (SesionUsuario.haySesion &&
+    SesionUsuario.actual!.esAdministrador)
+  IconButton(
+    tooltip: 'Gestionar vendedores',
+    icon: const Icon(Icons.people_alt_outlined),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PantallaGestionarVendedores(),
+        ),
+      );
+    },
+  ),
           if (SesionUsuario.haySesion && SesionUsuario.actual!.puedePublicar)
             IconButton(
               icon: const Icon(Icons.add_home_outlined, color: ColoresApp.azulNoche),
@@ -231,10 +246,11 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
         for (final propiedad in _filtradas) ...[
           _TarjetaPropiedad(
             propiedad: propiedad,
-            onTap: () {
-              Navigator.of(context).push(
+              onTap: () async {
+              final huboCambios = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(builder: (_) => PantallaDetallePropiedad(propiedad: propiedad)),
               );
+              if (huboCambios == true && mounted) _cargarPropiedades();
             },
           ),
           const SizedBox(height: 18),

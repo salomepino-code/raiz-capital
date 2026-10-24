@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'modelo_propiedad.dart';
 import 'modelo_zona.dart';
 import 'servicio_imagenes.dart';
 import 'servicio_propiedades.dart';
@@ -8,17 +9,25 @@ import 'servicio_zonas.dart';
 import 'sesion_usuario.dart';
 import 'tema_app.dart';
 
-/// Formulario para que un vendedor (o administrador) publique una
-/// propiedad nueva. Solo debe ser accesible si SesionUsuario.actual
-/// tiene rol vendedor o administrador (ver pantalla_catalogo.dart).
+/// Formulario para publicar una propiedad nueva (vendedor o administrador)
+/// o, si se le pasa [propiedadAEditar], para editar una existente (solo
+/// administrador; ver pantalla_detalle_propiedad.dart).
+///
+/// Regresa true con Navigator.pop cuando se guardó, para que quien lo
+/// abrió recargue sus datos.
 class PantallaPublicarPropiedad extends StatefulWidget {
-  const PantallaPublicarPropiedad({super.key});
+  const PantallaPublicarPropiedad({super.key, this.propiedadAEditar});
+
+  final Propiedad? propiedadAEditar;
 
   @override
   State<PantallaPublicarPropiedad> createState() => _EstadoPantallaPublicarPropiedad();
 }
 
 class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> {
+  static const List<String> _tipos = ['CASA', 'DEPARTAMENTO', 'TERRENO', 'LOCAL'];
+  static const List<String> _operaciones = ['VENTA', 'RENTA'];
+
   final _llaveFormulario = GlobalKey<FormState>();
   final _servicioPropiedades = ServicioPropiedades();
   final _servicioZonas = ServicioZonas();
@@ -39,6 +48,10 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
   String _operacion = 'VENTA';
   int? _idZonaSeleccionada;
 
+  // Fotos que la propiedad ya tiene guardadas (links), solo en modo edición.
+  // Se pueden quitar; las nuevas se agregan abajo en _fotosSeleccionadas.
+  List<String> _imagenesExistentes = [];
+
   List<XFile> _fotosSeleccionadas = [];
   bool _subiendoFotos = false;
   int _fotosSubidas = 0;
@@ -46,12 +59,16 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
   List<Zona> _zonas = [];
   bool _cargandoZonas = true;
   String? _errorZonas;
-  bool _publicando = false;
-  String? _errorPublicar;
+  bool _guardando = false;
+  String? _errorGuardar;
+
+  bool get _modoEdicion => widget.propiedadAEditar != null;
 
   @override
   void initState() {
     super.initState();
+    final propiedad = widget.propiedadAEditar;
+    if (propiedad != null) _precargar(propiedad);
     _cargarZonas();
   }
 
@@ -70,6 +87,27 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
     super.dispose();
   }
 
+  /// Llena el formulario con los datos de la propiedad que se va a editar.
+  void _precargar(Propiedad p) {
+    _controladorTitulo.text = p.titulo;
+    _controladorDescripcion.text = p.descripcion;
+    _controladorPrecio.text = _numeroSinDecimales(p.precioNumerico);
+    _controladorRecamaras.text = '${p.recamaras}';
+    _controladorBanos.text = '${p.banos}';
+    _controladorSuperficie.text = _numeroSinDecimales(p.superficieM2 ?? p.metros);
+    _controladorCalle.text = p.calle ?? '';
+    _controladorColonia.text = p.colonia ?? '';
+    _controladorUbicacionMaps.text = p.ubicacionMapsOriginal ?? '';
+    _controladorCaracteristicas.text = p.caracteristicas.join(', ');
+    if (_tipos.contains(p.tipo)) _tipo = p.tipo;
+    if (_operaciones.contains(p.operacion)) _operacion = p.operacion;
+    _imagenesExistentes = [...p.imagenesUrls];
+  }
+
+  /// 3999000.0 -> "3999000" (para que el campo no muestre un ".0" de sobra).
+  String _numeroSinDecimales(num n) =>
+      n == n.truncate() ? n.truncate().toString() : n.toString();
+
   Future<void> _cargarZonas() async {
     setState(() {
       _cargandoZonas = true;
@@ -79,7 +117,11 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
       final zonas = await _servicioZonas.obtenerZonas();
       setState(() {
         _zonas = zonas;
-        _idZonaSeleccionada = zonas.isNotEmpty ? zonas.first.id : null;
+        // Al editar se selecciona la zona que ya tenía la propiedad (si
+        // sigue existiendo); al publicar, la primera de la lista.
+        final idOriginal = widget.propiedadAEditar?.idZona;
+        final existe = idOriginal != null && zonas.any((z) => z.id == idOriginal);
+        _idZonaSeleccionada = existe ? idOriginal : (zonas.isNotEmpty ? zonas.first.id : null);
         _cargandoZonas = false;
       });
     } catch (e) {
@@ -111,22 +153,26 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
     setState(() => _fotosSeleccionadas = [..._fotosSeleccionadas]..removeAt(indice));
   }
 
-  Future<void> _publicar() async {
-    setState(() => _errorPublicar = null);
+  void _quitarFotoExistente(int indice) {
+    setState(() => _imagenesExistentes = [..._imagenesExistentes]..removeAt(indice));
+  }
+
+  Future<void> _guardar() async {
+    setState(() => _errorGuardar = null);
 
     if (!_llaveFormulario.currentState!.validate()) return;
     if (_idZonaSeleccionada == null) {
-      setState(() => _errorPublicar = 'Selecciona una zona.');
+      setState(() => _errorGuardar = 'Selecciona una zona.');
       return;
     }
 
     final usuario = SesionUsuario.actual;
     if (usuario == null) {
-      setState(() => _errorPublicar = 'Tu sesión expiró, inicia sesión de nuevo.');
+      setState(() => _errorGuardar = 'Tu sesión expiró, inicia sesión de nuevo.');
       return;
     }
 
-    setState(() => _publicando = true);
+    setState(() => _guardando = true);
 
     try {
       final caracteristicas = _controladorCaracteristicas.text
@@ -135,15 +181,15 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
           .where((c) => c.isNotEmpty)
           .toList();
 
-      // Sube las fotos directo a Cloudinary antes de publicar la propiedad,
-      // para mandar los links ya listos.
-      List<String> imagenesUrls = [];
+      // Sube las fotos nuevas directo a Cloudinary antes de guardar la
+      // propiedad, para mandar los links ya listos.
+      List<String> urlsNuevas = [];
       if (_fotosSeleccionadas.isNotEmpty) {
         setState(() {
           _subiendoFotos = true;
           _fotosSubidas = 0;
         });
-        imagenesUrls = await _servicioImagenes.subirFotos(
+        urlsNuevas = await _servicioImagenes.subirFotos(
           _fotosSeleccionadas,
           onProgreso: (subidas, total) {
             if (mounted) setState(() => _fotosSubidas = subidas);
@@ -152,35 +198,70 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
         if (mounted) setState(() => _subiendoFotos = false);
       }
 
-      await _servicioPropiedades.publicarPropiedad(
-        idVendedor: usuario.id,
-        idZona: _idZonaSeleccionada!,
-        titulo: _controladorTitulo.text.trim(),
-        descripcion: _controladorDescripcion.text.trim(),
-        precio: num.parse(_controladorPrecio.text.trim()),
-        tipo: _tipo,
-        operacion: _operacion,
-        recamaras: int.parse(_controladorRecamaras.text.trim()),
-        banos: int.parse(_controladorBanos.text.trim()),
-        superficieM2: num.parse(_controladorSuperficie.text.trim()),
-        calle: _controladorCalle.text.trim().isEmpty ? null : _controladorCalle.text.trim(),
-        colonia: _controladorColonia.text.trim().isEmpty ? null : _controladorColonia.text.trim(),
-        ubicacionMaps: _controladorUbicacionMaps.text.trim().isEmpty
-            ? null
-            : _controladorUbicacionMaps.text.trim(),
-        caracteristicas: caracteristicas,
-        imagenesUrls: imagenesUrls,
-      );
+      // Las que ya tenía (y no se quitaron) van primero, luego las nuevas.
+      final imagenesUrls = [..._imagenesExistentes, ...urlsNuevas];
+
+      final calle = _controladorCalle.text.trim();
+      final colonia = _controladorColonia.text.trim();
+      final ubicacionMaps = _controladorUbicacionMaps.text.trim();
+
+      final propiedadAEditar = widget.propiedadAEditar;
+      if (propiedadAEditar != null) {
+        final id = propiedadAEditar.id;
+        if (id == null) {
+          throw Exception('La propiedad no tiene id, no se puede editar.');
+        }
+        await _servicioPropiedades.actualizarPropiedad(
+          id: id,
+          idAdmin: usuario.id,
+          idZona: _idZonaSeleccionada!,
+          titulo: _controladorTitulo.text.trim(),
+          descripcion: _controladorDescripcion.text.trim(),
+          precio: num.parse(_controladorPrecio.text.trim()),
+          tipo: _tipo,
+          operacion: _operacion,
+          recamaras: int.parse(_controladorRecamaras.text.trim()),
+          banos: int.parse(_controladorBanos.text.trim()),
+          superficieM2: num.parse(_controladorSuperficie.text.trim()),
+          calle: calle.isEmpty ? null : calle,
+          colonia: colonia.isEmpty ? null : colonia,
+          ubicacionMaps: ubicacionMaps.isEmpty ? null : ubicacionMaps,
+          caracteristicas: caracteristicas,
+          imagenesUrls: imagenesUrls,
+        );
+      } else {
+        await _servicioPropiedades.publicarPropiedad(
+          idVendedor: usuario.id,
+          idZona: _idZonaSeleccionada!,
+          titulo: _controladorTitulo.text.trim(),
+          descripcion: _controladorDescripcion.text.trim(),
+          precio: num.parse(_controladorPrecio.text.trim()),
+          tipo: _tipo,
+          operacion: _operacion,
+          recamaras: int.parse(_controladorRecamaras.text.trim()),
+          banos: int.parse(_controladorBanos.text.trim()),
+          superficieM2: num.parse(_controladorSuperficie.text.trim()),
+          calle: calle.isEmpty ? null : calle,
+          colonia: colonia.isEmpty ? null : colonia,
+          ubicacionMaps: ubicacionMaps.isEmpty ? null : ubicacionMaps,
+          caracteristicas: caracteristicas,
+          imagenesUrls: imagenesUrls,
+        );
+      }
 
       if (!mounted) return;
-      Navigator.of(context).pop(true); // true = se publicó, para que el catálogo recargue
+      Navigator.of(context).pop(true); // true = se guardó, para que el catálogo recargue
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorPublicar = 'No se pudo publicar la propiedad. Intenta de nuevo.');
+      setState(() {
+        _errorGuardar = _modoEdicion
+            ? 'No se pudieron guardar los cambios. Intenta de nuevo.'
+            : 'No se pudo publicar la propiedad. Intenta de nuevo.';
+      });
     } finally {
       if (mounted) {
         setState(() {
-          _publicando = false;
+          _guardando = false;
           _subiendoFotos = false;
         });
       }
@@ -197,7 +278,7 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
         backgroundColor: ColoresApp.crema,
         elevation: 0,
         foregroundColor: ColoresApp.azulNoche,
-        title: const Text('Publicar propiedad'),
+        title: Text(_modoEdicion ? 'Editar propiedad' : 'Publicar propiedad'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -227,7 +308,7 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                       child: _campoDropdown(
                         etiqueta: 'Tipo',
                         valor: _tipo,
-                        opciones: const ['CASA', 'DEPARTAMENTO', 'TERRENO', 'LOCAL'],
+                        opciones: _tipos,
                         onChanged: (v) => setState(() => _tipo = v!),
                       ),
                     ),
@@ -236,7 +317,7 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                       child: _campoDropdown(
                         etiqueta: 'Operación',
                         valor: _operacion,
-                        opciones: const ['VENTA', 'RENTA'],
+                        opciones: _operaciones,
                         onChanged: (v) => setState(() => _operacion = v!),
                       ),
                     ),
@@ -339,9 +420,9 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                 _buildSelectorFotos(),
                 const SizedBox(height: 24),
 
-                if (_errorPublicar != null) ...[
+                if (_errorGuardar != null) ...[
                   Text(
-                    _errorPublicar!,
+                    _errorGuardar!,
                     style: temaDeTexto.bodyMedium?.copyWith(color: ColoresApp.error),
                   ),
                   const SizedBox(height: 12),
@@ -356,14 +437,14 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
                   const SizedBox(height: 8),
                 ],
                 ElevatedButton(
-                  onPressed: _publicando ? null : _publicar,
-                  child: _publicando
+                  onPressed: _guardando ? null : _guardar,
+                  child: _guardando
                       ? const SizedBox(
                           height: 22,
                           width: 22,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('Publicar propiedad'),
+                      : Text(_modoEdicion ? 'Guardar cambios' : 'Publicar propiedad'),
                 ),
               ],
             ),
@@ -374,23 +455,30 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
   }
 
   Widget _buildSelectorFotos() {
+    final hayFotos = _imagenesExistentes.isNotEmpty || _fotosSeleccionadas.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_fotosSeleccionadas.isNotEmpty)
+        if (hayFotos)
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
+              for (var i = 0; i < _imagenesExistentes.length; i++)
+                _MiniaturaUrl(
+                  url: _imagenesExistentes[i],
+                  onQuitar: () => _quitarFotoExistente(i),
+                ),
               for (var i = 0; i < _fotosSeleccionadas.length; i++)
                 _MiniaturaFoto(foto: _fotosSeleccionadas[i], onQuitar: () => _quitarFoto(i)),
             ],
           ),
-        if (_fotosSeleccionadas.isNotEmpty) const SizedBox(height: 10),
+        if (hayFotos) const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: _subiendoFotos ? null : _elegirFotos,
           icon: const Icon(Icons.add_photo_alternate_outlined),
-          label: Text(_fotosSeleccionadas.isEmpty ? 'Agregar fotos' : 'Agregar más fotos'),
+          label: Text(hayFotos ? 'Agregar más fotos' : 'Agregar fotos'),
         ),
       ],
     );
@@ -486,8 +574,59 @@ class _EstadoPantallaPublicarPropiedad extends State<PantallaPublicarPropiedad> 
   }
 }
 
+/// Miniatura de una foto que la propiedad YA tiene guardada (un link), con
+/// botón para quitarla. Solo aparece en modo edición.
+class _MiniaturaUrl extends StatelessWidget {
+  const _MiniaturaUrl({required this.url, required this.onQuitar});
+
+  final String url;
+  final VoidCallback onQuitar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            url,
+            width: 72,
+            height: 72,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 72,
+                height: 72,
+                color: ColoresApp.azulNoche,
+                child: const Icon(
+                  Icons.image_not_supported_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              );
+            },
+          ),
+        ),
+        Positioned(
+          top: -6,
+          right: -6,
+          child: GestureDetector(
+            onTap: onQuitar,
+            child: Container(
+              decoration: const BoxDecoration(color: Colors.black87, shape: BoxShape.circle),
+              padding: const EdgeInsets.all(2),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Miniatura de una foto elegida de la galería, con botón para quitarla
-/// antes de publicar.
+/// antes de guardar.
 class _MiniaturaFoto extends StatelessWidget {
   const _MiniaturaFoto({required this.foto, required this.onQuitar});
 
@@ -497,6 +636,7 @@ class _MiniaturaFoto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8),

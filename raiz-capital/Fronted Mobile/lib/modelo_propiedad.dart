@@ -18,6 +18,12 @@ class Propiedad {
     required this.imagenesUrls,
     required this.mapsUrl,
     this.telefonoVendedor,
+    this.id,
+    this.idZona,
+    this.calle,
+    this.colonia,
+    this.superficieM2,
+    this.ubicacionMapsOriginal,
   });
 
   final String operacion;
@@ -57,4 +63,12 @@ class Propiedad {
   /// Teléfono del vendedor con la exclusiva de esta propiedad (para WhatsApp).
   /// Null si el vendedor no registró teléfono.
   final String? telefonoVendedor;
+
+  final int? id;
+  final int? idZona;
+  final String? calle;
+  final String? colonia;
+  final num? superficieM2;
+  final String? ubicacionMapsOriginal;
+
 }
